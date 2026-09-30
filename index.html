@@ -86,12 +86,12 @@ function chart(lb,ser,line,money=1){const W=520,H=190,l=44,b=22,t=8,w=W-l-8,h=H-
 const kp=(l,v,s,c='')=>`<div class="cd k"><small>${l}</small><b class="${c}">${v}</b><i>${s||''}</i></div>`;
 const MN=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],mlab=m=>MN[+m.slice(5)-1]+'/'+m.slice(2,4);
 function nav(){const a=(v,i,t)=>`<a class="${V.v==v&&V.id==i?'on':''}" onclick="go('${v}',${i||0})">${t}</a>`;
- const ad=ME.role=='admin';$('#nv').innerHTML=`<h1>AGR<small>Marketing e Tecnologia</small></h1>${ad?a('dash',0,'📊 Dashboard')+a('eq',0,'👥 Equipe')+a('usr',0,'🔐 Usuários')+'<div class="s">Colaboradores</div>'+S.colabs.map(c=>a('col',c.id,c.nome)).join(''):a('col',ME.colabId,'👤 Minha carteira')}<div class="s">${esc(ME.nome)}</div><a onclick="chPw()">🔑 Alterar senha</a><a onclick="logout()">⎋ Sair</a>`}
+ const ad=ME.role=='admin';$('#nv').innerHTML=`<h1>AGR<small>Marketing e Tecnologia</small></h1>${ad?a('dash',0,'📊 Dashboard')+a('eq',0,'👥 Equipe')+a('usr',0,'🔐 Usuários')+a('newusr',0,'➕ Criar conta')+'<div class="s">Colaboradores</div>'+S.colabs.map(c=>a('col',c.id,c.nome)).join(''):a('col',ME.colabId,'👤 Minha carteira')}<div class="s">${esc(ME.nome)}</div><a onclick="chPw()">🔑 Alterar senha</a><a onclick="logout()">⎋ Sair</a>`}
 function go(v,id){V={v,id};render();scrollTo(0,0)}
 function render(){if(!ME)return login();
  $('#nv').style.display='';$('#mn').style.padding='';$('#mn').style.maxWidth='';
  if(ME.role!='admin'){if(!(V.v=='cli'&&gc(V.id)?.colab==ME.colabId))V={v:'col',id:ME.colabId}}
- nav();$('#mn').innerHTML=({dash,eq,col,cli,usr}[V.v])()}
+ nav();$('#mn').innerHTML=({dash,eq,col,cli,usr,newusr}[V.v])()}
 function dash(){const r=rng(),p=prv(r),C=S.clients,fat=pay(C,r),ant=pay(C,p),cr=ant?(fat-ant)/ant*100:0,rec=pay(C,r,1),pen=pay(C,r,0),com=pay(C,r,null,1);
  const at=C.filter(c=>ACT.includes(c.st)),mrr=at.reduce((a,c)=>a+mens(c),0),prop=C.filter(c=>['Proposta enviada','Em negociação'].includes(c.st)).reduce((a,c)=>a+mens(c),0);
  const nv=C.filter(c=>c.fech&&inR(c.fech,r)),cn=C.filter(c=>c.st=='Cancelado'&&inR(c.fim,r));
@@ -150,6 +150,13 @@ async function logout(){await queue;try{await api('logout',{})}finally{ME=null;S
 function forgot(){modal('Recuperar senha',[{k:'email',l:'Seu e-mail cadastrado',t:'email'}],{email:$('#le')?.value||''},async o=>{try{await api('recover',o);alert('Se houver uma conta com esse e-mail, você receberá as instruções.')}catch(e){alert(e.message)}},'Enviar link')}
 function chPw(){modal('Alterar senha',[{k:'password',l:'Nova senha (mín. 12 caracteres)',t:'password'}],{},async o=>{try{await api('password',o);alert('Senha atualizada.')}catch(e){alert(e.message)}})}
 function usr(){return`<div class="top"><h2 style="margin:0">Usuários e acessos</h2><button onclick="addU()">+ Usuário</button></div><div class="cd tw"><table><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th></th></tr>${S.users.map(u=>`<tr><td>${esc(u.nome)}</td><td>${esc(u.email)}</td><td>${u.role=='admin'?'Administrador':'Colaborador ('+esc(co(u.colabId).nome)+')'}</td><td>${u.id!=ME.id?`<a onclick="delU('${u.id}')">remover acesso</a>`:''}</td></tr>`).join('')}</table></div><p>As contas usam autenticação do Supabase. Para recuperar a senha, use “Esqueci a senha” na tela de entrada.</p>`}
+function newusr(){if(ME.role!=='admin')return'';return`<div class="top"><h2 style="margin:0">Criar conta</h2><button class="g" onclick="go('usr')">Ver usuários</button></div>
+<div class="g2">
+ <div class="cd"><h3>👑 Criar Administrador</h3><p style="color:var(--mu)">Cria um novo administrador com área própria, colaboradores e clientes separados.</p><button onclick="addAdmin()">Criar administrador</button></div>
+ <div class="cd"><h3>👤 Criar Colaborador</h3><p style="color:var(--mu)">Cria um acesso vinculado a um colaborador da sua equipe.</p><button onclick="addCollaborator()">Criar colaborador</button></div>
+</div>`}
+function addAdmin(){if(ME.role!=='admin')return;modal('Criar administrador',[{k:'nome',l:'Nome'},{k:'email',l:'E-mail',t:'email'},{k:'password',l:'Senha inicial (mín. 12 caracteres)',t:'password'}],{},async o=>{await queue;try{await api('users',{...o,role:'admin',colabId:null});await loadShared();alert('Administrador criado com sucesso.');go('usr')}catch(e){alert(e.message)}})}
+function addCollaborator(){if(ME.role!=='admin')return;if(!S.colabs.length){alert('Cadastre primeiro o colaborador na aba Equipe.');return}modal('Criar colaborador',[{k:'nome',l:'Nome'},{k:'email',l:'E-mail',t:'email'},{k:'password',l:'Senha inicial (mín. 12 caracteres)',t:'password'},{k:'colabId',l:'Colaborador vinculado',t:'select',o:S.colabs.map(c=>[c.id,c.nome])}],{},async o=>{await queue;try{o.colabId=+o.colabId;await api('users',{...o,role:'user'});await loadShared();alert('Colaborador criado com sucesso.');go('usr')}catch(e){alert(e.message)}})}
 function addU(){if(ME.role!=='admin')return;modal('Novo usuário',[{k:'nome',l:'Nome'},{k:'email',l:'E-mail',t:'email'},{k:'password',l:'Senha inicial (mín. 12 caracteres)',t:'password'},{k:'role',l:'Perfil',t:'select',o:[['user','Colaborador'],['admin','Administrador']]},{k:'colabId',l:'Colaborador vinculado',t:'select',o:S.colabs.map(c=>[c.id,c.nome])}],{},async o=>{await queue;try{o.colabId=+o.colabId;await api('users',o);await loadShared();render()}catch(e){alert(e.message)}})}
 function editCom(id){const c=co(id);modal('Comissão de '+esc(c.nome),[{k:'com',l:'Percentual (%)',t:'number'}],c,o=>{c.com=Math.max(0,Math.min(100,+o.com||0));done()})}
 async function delU(id){if(ME.role!=='admin'||!confirm('Remover acesso deste usuário?'))return;try{await api('users',{id},'DELETE');await loadShared();render()}catch(e){alert(e.message)}}
