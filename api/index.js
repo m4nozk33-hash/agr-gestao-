@@ -164,6 +164,36 @@ module.exports = async function handler(req, res) {
       setSession(res, { ...body, expires_in: 3600 });
       return res.status(200).json({ ok: true });
     }
+    if (route === 'bootstrap-admin' && req.method === 'POST') {
+      if (!body.nome?.trim() || typeof body.email !== 'string' || typeof body.password !== 'string' || body.password.length < 12)
+        throw fail(400, 'Informe nome, e-mail e senha de pelo menos 12 caracteres.');
+      const admins = await sb('/rest/v1/agr_profiles?role=eq.admin&select=id&limit=3');
+      if ((admins?.length || 0) >= 2) throw fail(403, 'A criação pública de administrador já foi encerrada.');
+      const email = body.email.toLowerCase().trim();
+      const user = await sb('/auth/v1/admin/users', {
+        method: 'POST',
+        body: JSON.stringify({ email, password: body.password, email_confirm: true })
+      });
+      try {
+        await sb('/rest/v1/agr_profiles', {
+          method: 'POST',
+          body: JSON.stringify({ id: user.id, nome: body.nome.trim(), email, role: 'admin', colab_id: null, owner_id: user.id })
+        });
+        let data = { colabs: [], clients: [] };
+        if ((admins?.length || 0) === 0) {
+          const legacy = await sb('/rest/v1/agr_state?id=eq.1&select=data').catch(() => []);
+          if (legacy?.[0]?.data?.colabs && legacy?.[0]?.data?.clients) data = legacy[0].data;
+        }
+        await sb('/rest/v1/agr_workspaces', {
+          method: 'POST',
+          body: JSON.stringify({ owner_id: user.id, data })
+        });
+      } catch (e) {
+        await sb('/auth/v1/admin/users/' + user.id, { method: 'DELETE' }).catch(() => {});
+        throw e;
+      }
+      return res.status(201).json({ ok: true, remaining: Math.max(0, 1 - (admins?.length || 0)) });
+    }
     const profile = await identity(req);
     if (route === 'session' && req.method === 'GET') return res.status(200).json({ user: publicProfile(profile) });
     if (route === 'password' && req.method === 'POST') {
