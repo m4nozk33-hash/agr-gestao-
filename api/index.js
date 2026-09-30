@@ -135,9 +135,27 @@ module.exports = async function handler(req, res) {
       if (token) await sb('/auth/v1/logout', { method: 'POST' }, token).catch(() => {});
       setSession(res, null); return res.status(200).json({ ok: true });
     }
-    if (route === 'recover' && req.method === 'POST') {
-      if (typeof body.email !== 'string') throw fail(400, 'Informe seu e-mail.');
-      await sb('/auth/v1/recover', { method: 'POST', body: JSON.stringify({ email: body.email }) }, config().anon);
+    if (route === 'recover-code' && req.method === 'POST') {
+      if (typeof body.email !== 'string' || !body.email.trim()) throw fail(400, 'Informe seu e-mail.');
+      const email = body.email.toLowerCase().trim();
+      // Envia OTP somente para conta existente; não cria usuário novo.
+      await sb('/auth/v1/otp', {
+        method: 'POST',
+        body: JSON.stringify({ email, create_user: false })
+      }, config().anon);
+      return res.status(200).json({ ok: true });
+    }
+    if (route === 'verify-recovery-code' && req.method === 'POST') {
+      if (typeof body.email !== 'string' || typeof body.token !== 'string') throw fail(400, 'Informe e-mail e código.');
+      const email = body.email.toLowerCase().trim();
+      const token = body.token.replace(/\s/g, '');
+      if (!/^\d{6}$/.test(token)) throw fail(400, 'Digite o código de 6 dígitos.');
+      const session = await sb('/auth/v1/verify', {
+        method: 'POST',
+        body: JSON.stringify({ email, token, type: 'email' })
+      }, config().anon);
+      if (!session?.access_token || !session?.refresh_token) throw fail(401, 'Código inválido ou expirado.');
+      setSession(res, session);
       return res.status(200).json({ ok: true });
     }
     if (route === 'recovery-session' && req.method === 'POST') {
