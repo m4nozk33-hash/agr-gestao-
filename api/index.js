@@ -33,10 +33,25 @@ async function identity(req) {
   if (!profiles?.[0]) throw fail(403, 'Seu usuário ainda não recebeu acesso à AGR.');
   return profiles[0];
 }
-const publicProfile = u => ({ id: u.id, nome: u.nome, email: u.email, role: u.role, colabId: u.colab_id });
-async function load() {
-  const rows = await sb('/rest/v1/agr_state?id=eq.1&select=*');
-  if (!rows?.[0]) throw fail(503, 'Execute a estrutura SQL do banco antes de acessar.');
+const publicProfile = u => ({ id: u.id, nome: u.nome, email: u.email, role: u.role, colabId: u.colab_id, ownerId: u.owner_id });
+const workspaceOwner = p => p.role === 'admin' ? p.id : p.owner_id;
+async function load(profile) {
+  const ownerId = workspaceOwner(profile);
+  if (!ownerId) throw fail(403, 'Seu usuário ainda não está vinculado a um administrador.');
+  let rows = await sb('/rest/v1/agr_workspaces?owner_id=eq.' + encodeURIComponent(ownerId) + '&select=*');
+  if (!rows?.[0] && profile.role === 'admin') {
+    let data = { colabs: [], clients: [] };
+    // Migração compatível: a carteira antiga fica somente com o administrador principal.
+    if ((profile.email || '').toLowerCase() === 'm4nozk33@gmail.com') {
+      const legacy = await sb('/rest/v1/agr_state?id=eq.1&select=data').catch(() => []);
+      if (legacy?.[0]?.data?.colabs && legacy?.[0]?.data?.clients) data = legacy[0].data;
+    }
+    rows = await sb('/rest/v1/agr_workspaces', {
+      method: 'POST', headers: { Prefer: 'return=representation' },
+      body: JSON.stringify({ owner_id: ownerId, data })
+    });
+  }
+  if (!rows?.[0]) throw fail(503, 'A área deste administrador ainda não foi criada.');
   return rows[0];
 }
 function view(state, profile, profiles) {
@@ -78,8 +93,9 @@ function merge(state, incoming, profile) {
   const next = { colabs: state.colabs, clients: [...foreign, ...(incoming.clients || [])] };
   validate(next); return next;
 }
-async function persist(row, next) {
-  const rows = await sb('/rest/v1/agr_state?id=eq.1&version=eq.' + row.version, {
+async function persist(row, next, profile) {
+  const ownerId = workspaceOwner(profile);
+  const rows = await sb('/rest/v1/agr_workspaces?owner_id=eq.' + encodeURIComponent(ownerId) + '&version=eq.' + row.version, {
     method: 'PATCH', headers: { Prefer: 'return=representation' },
     body: JSON.stringify({ data: next, version: row.version + 1, updated_at: new Date().toISOString() })
   });
@@ -87,7 +103,8 @@ async function persist(row, next) {
   return rows[0];
 }
 async function profilesFor(p) {
-  return sb('/rest/v1/agr_profiles?select=*' + (p.role === 'admin' ? '' : '&id=eq.' + encodeURIComponent(p.id)));
+  if (p.role === 'admin') return sb('/rest/v1/agr_profiles?select=*&owner_id=eq.' + encodeURIComponent(p.id));
+  return sb('/rest/v1/agr_profiles?select=*&id=eq.' + encodeURIComponent(p.id));
 }
 module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
@@ -137,25 +154,25 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
     if (route === 'state' && req.method === 'GET') {
-      const row = await load();
+      const row = await load(profile);
       return res.status(200).json({ version: row.version, state: view(row.data, profile, await profilesFor(profile)) });
     }
     if (route === 'state' && req.method === 'PUT') {
-      const row = await load();
+      const row = await load(profile);
       if (body.version !== row.version) throw fail(409, 'Outra pessoa alterou os dados. Recarregue e tente novamente.');
       const next = merge(row.data, body.state, profile);
-      const updated = await persist(row, next);
+      const updated = await persist(row, next, profile);
       return res.status(200).json({ version: updated.version });
     }
     if (route === 'users' && profile.role === 'admin') {
       if (req.method === 'POST') {
         if (!['admin', 'user'].includes(body.role) || !body.nome?.trim() || !body.email || (typeof body.password !== 'string' || body.password.length < 12)) throw fail(400, 'Informe nome, e-mail, perfil e senha de 12 caracteres.');
-        const row = await load();
+        const row = await load(profile);
         const colab = row.data.colabs.find(c => c.id === body.colabId);
         if (body.role === 'user' && !colab) throw fail(400, 'Cadastre e selecione o colaborador primeiro.');
         const user = await sb('/auth/v1/admin/users', { method: 'POST', body: JSON.stringify({ email: body.email, password: body.password, email_confirm: true }) });
         try {
-          await sb('/rest/v1/agr_profiles', { method: 'POST', body: JSON.stringify({ id: user.id, nome: body.nome.trim(), email: body.email.toLowerCase().trim(), role: body.role, colab_id: body.role === 'user' ? body.colabId : null }) });
+          await sb('/rest/v1/agr_profiles', { method: 'POST', body: JSON.stringify({ id: user.id, nome: body.nome.trim(), email: body.email.toLowerCase().trim(), role: body.role, colab_id: body.role === 'user' ? body.colabId : null, owner_id: body.role === 'admin' ? user.id : profile.id }) });
         } catch (e) {
           await sb('/auth/v1/admin/users/' + user.id, { method: 'DELETE' }).catch(() => {}); throw e;
         }
@@ -163,7 +180,7 @@ module.exports = async function handler(req, res) {
       }
       if (req.method === 'DELETE') {
         if (!body.id || body.id === profile.id) throw fail(400, 'Você não pode remover seu próprio acesso.');
-        const target = await sb('/rest/v1/agr_profiles?id=eq.' + encodeURIComponent(body.id) + '&select=id');
+        const target = await sb('/rest/v1/agr_profiles?id=eq.' + encodeURIComponent(body.id) + '&owner_id=eq.' + encodeURIComponent(profile.id) + '&select=id');
         if (!target.length) throw fail(404, 'Usuário não encontrado.');
         // Remove authorization first, so active sessions lose access immediately.
         await sb('/rest/v1/agr_profiles?id=eq.' + encodeURIComponent(body.id), { method: 'DELETE' });
@@ -176,4 +193,4 @@ module.exports = async function handler(req, res) {
     return res.status(e.status || 500).json({ error: e.status ? e.message : 'Não foi possível concluir. Tente novamente.' });
   }
 };
-module.exports._test = { merge, validate, view };
+module.exports._test = { merge, validate, view, workspaceOwner };
