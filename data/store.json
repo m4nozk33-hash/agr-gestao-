@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "legacyClaimed": false,
+  "users": [],
+  "workspaces": {},
+  "legacySeed": {
+    "colabs": [
+      {
+        "id": 1,
+        "com": 60,
+        "nome": "Gabi"
+      },
+      {
+        "id": 2,
+        "com": 60,
+        "nome": "Laura"
+      },
+      {
+        "id": 3,
+        "com": 60,
+        "nome": "Emanuel"
+      },
+      {
+        "id": 4,
+        "com": 60,
+        "nome": "Lucas"
+      }
+    ],
+    "clients": []
+  }
+}
