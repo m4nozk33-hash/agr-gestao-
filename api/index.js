@@ -173,6 +173,9 @@ module.exports = async function handler(req, res) {
         const user = await sb('/auth/v1/admin/users', { method: 'POST', body: JSON.stringify({ email: body.email, password: body.password, email_confirm: true }) });
         try {
           await sb('/rest/v1/agr_profiles', { method: 'POST', body: JSON.stringify({ id: user.id, nome: body.nome.trim(), email: body.email.toLowerCase().trim(), role: body.role, colab_id: body.role === 'user' ? body.colabId : null, owner_id: body.role === 'admin' ? user.id : profile.id }) });
+          if (body.role === 'admin') {
+            await sb('/rest/v1/agr_workspaces', { method: 'POST', body: JSON.stringify({ owner_id: user.id, data: { colabs: [], clients: [] } }) });
+          }
         } catch (e) {
           await sb('/auth/v1/admin/users/' + user.id, { method: 'DELETE' }).catch(() => {}); throw e;
         }
