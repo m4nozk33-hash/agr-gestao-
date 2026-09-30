@@ -6,11 +6,23 @@ function config() {
 }
 async function sb(path, options = {}, token) {
   const c = config();
-  const r = await fetch(c.url + path, { ...options, headers: {
-    apikey: c.anon, Authorization: `Bearer ${token || c.service}`,
-    'Content-Type': 'application/json', ...options.headers,
-    ...(token ? {} : { apikey: c.service })
-  }, signal: AbortSignal.timeout(12000) });
+  const isPublicApiKey = token === c.anon;
+  const apiKey = token && !isPublicApiKey ? c.anon : (isPublicApiKey ? c.anon : c.service);
+  const headers = {
+    apikey: apiKey,
+    'Content-Type': 'application/json',
+    ...options.headers
+  };
+  // New Supabase sb_publishable_/sb_secret_ keys are opaque API keys, not JWTs.
+  // Only send Authorization for a real user session JWT or for legacy JWT-based API keys.
+  if (token && !isPublicApiKey) {
+    headers.Authorization = `Bearer ${token}`;
+  } else if (isPublicApiKey && !c.anon.startsWith('sb_')) {
+    headers.Authorization = `Bearer ${c.anon}`;
+  } else if (!token && !c.service.startsWith('sb_')) {
+    headers.Authorization = `Bearer ${c.service}`;
+  }
+  const r = await fetch(c.url + path, { ...options, headers, signal: AbortSignal.timeout(12000) });
   const value = await r.json().catch(() => null);
   if (!r.ok) throw fail(r.status === 401 || r.status === 403 ? 401 : 502, 'Não foi possível concluir a operação no banco.');
   return value;
