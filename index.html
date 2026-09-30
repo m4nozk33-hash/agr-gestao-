@@ -52,7 +52,7 @@ let committed=structuredClone(S);
 async function api(route,body,method,canRefresh=true){
  const r=await fetch('/api/'+route,{method:method||(body?'POST':'GET'),credentials:'same-origin',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
  const result=await r.json();
- if(r.status===401&&canRefresh&&!['login','refresh','recover','logout'].includes(route)){
+ if(r.status===401&&canRefresh&&!['login','refresh','recover-code','verify-recovery-code','logout'].includes(route)){
   if(!refreshing)refreshing=api('refresh',{},'POST',false).finally(()=>refreshing=null);
   await refreshing;return api(route,body,method,false);
  }
@@ -149,7 +149,39 @@ async function doLogin(e){e.preventDefault();const button=e.target.querySelector
  try{await api('login',{email:$('#le').value.toLowerCase().trim(),password:$('#lp').value});const x=await api('session');ME=x.user;await loadShared();V={v:'dash'};render();statusSync('Conectado ao banco compartilhado')}
  catch(x){ME=null;$('#lerr').textContent=x.message;button.disabled=false}}
 async function logout(){await queue;try{await api('logout',{})}finally{ME=null;S={colabs:[],clients:[],users:[]};committed=structuredClone(S);render();statusSync('Sessão encerrada')}}
-function forgot(){modal('Recuperar senha',[{k:'email',l:'Seu e-mail cadastrado',t:'email'}],{email:$('#le')?.value||''},async o=>{try{await api('recover',o);alert('Se houver uma conta com esse e-mail, você receberá as instruções.')}catch(e){alert(e.message)}},'Enviar link')}
+function forgot(){
+ const email=($('#le')?.value||'').toLowerCase().trim();
+ modal('Recuperar senha',[{k:'email',l:'Seu e-mail cadastrado',t:'email'}],{email},async o=>{
+  try{
+   o.email=o.email.toLowerCase().trim();
+   await api('recover-code',{email:o.email});
+   recoveryCode(o.email);
+  }catch(e){alert(e.message)}
+ },'Enviar código')
+}
+function recoveryCode(email){
+ modal('Digite o código',[{k:'token',l:'Código de 6 dígitos',t:'text'}],{},async o=>{
+  try{
+   await api('verify-recovery-code',{email,token:String(o.token||'').trim()});
+   recoveryNewPassword();
+  }catch(e){alert(e.message)}
+ },'Validar código')
+}
+function recoveryNewPassword(){
+ modal('Criar nova senha',[
+  {k:'password',l:'Nova senha (mín. 12 caracteres)',t:'password'},
+  {k:'confirm',l:'Confirmar nova senha',t:'password'}
+ ],{},async o=>{
+  try{
+   if(o.password!==o.confirm){alert('As senhas não coincidem.');return}
+   if(typeof o.password!=='string'||o.password.length<12){alert('Use pelo menos 12 caracteres.');return}
+   await api('password',{password:o.password});
+   alert('Senha alterada com sucesso. Agora você pode entrar com a nova senha.');
+   await api('logout',{}).catch(()=>{});
+   ME=null;render();
+  }catch(e){alert(e.message)}
+ },'Alterar senha')
+}
 function chPw(){modal('Alterar senha',[{k:'password',l:'Nova senha (mín. 12 caracteres)',t:'password'}],{},async o=>{try{await api('password',o);alert('Senha atualizada.')}catch(e){alert(e.message)}})}
 function usr(){return`<div class="top"><h2 style="margin:0">Usuários e acessos</h2><button onclick="addU()">+ Usuário</button></div><div class="cd tw"><table><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th></th></tr>${S.users.map(u=>`<tr><td>${esc(u.nome)}</td><td>${esc(u.email)}</td><td>${u.role=='admin'?'Administrador':'Colaborador ('+esc(co(u.colabId).nome)+')'}</td><td>${u.id!=ME.id?`<a onclick="delU('${u.id}')">remover acesso</a>`:''}</td></tr>`).join('')}</table></div><p>As contas usam autenticação do Supabase. Para recuperar a senha, use “Esqueci a senha” na tela de entrada.</p>`}
 function newusr(){if(ME.role!=='admin')return'';return`<div class="top"><h2 style="margin:0">Criar conta</h2><button class="g" onclick="go('usr')">Ver usuários</button></div>
