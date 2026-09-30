@@ -164,4 +164,11 @@ async function boot(){
 }
 setInterval(async()=>{if(!ME||pending||document.querySelector('dialog[open]'))return;try{const x=await api('state');if(x.version!==VERSION){S=x.state;VERSION=x.version;committed=structuredClone(S);render();statusSync('Dados atualizados pela equipe')}}catch(e){statusSync('Sem conexão: '+e.message,true)}},15000);
 render();boot();
-</script></body></html>
+</script>
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script defer src="/_vercel/speed-insights/script.js"></script>
+</body></html>
