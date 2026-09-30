@@ -130,10 +130,40 @@ module.exports = async function handler(req, res) {
     const route = req.query?.route || new URL(req.url, 'https://localhost').searchParams.get('route');
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
     if (Buffer.byteLength(JSON.stringify(body)) > 2000000) throw fail(413, 'Dados excedem o limite de 2 MB.');
+    if (route === 'health' && req.method === 'GET') {
+      const c = config();
+      const type = k => k?.startsWith('sb_publishable_') ? 'publishable' : k?.startsWith('sb_secret_') ? 'secret' : k?.startsWith('eyJ') ? 'legacy-jwt' : 'other';
+      return res.status(200).json({
+        ok: true,
+        supabaseUrl: !!c.url,
+        publicKeyType: type(c.anon),
+        serverKeyType: type(c.service)
+      });
+    }
     if (route === 'login' && req.method === 'POST') {
       if (typeof body.email !== 'string' || typeof body.password !== 'string') throw fail(400, 'Informe e-mail e senha.');
       const c = config();
-      const session = await sb('/auth/v1/token?grant_type=password', { method: 'POST', body: JSON.stringify(body) }, c.anon);
+      let r;
+      try {
+        r = await fetch(c.url + '/auth/v1/token?grant_type=password', {
+          method: 'POST',
+          headers: { apikey: c.anon, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: body.email, password: body.password }),
+          signal: AbortSignal.timeout(12000)
+        });
+      } catch (e) {
+        throw fail(503, 'Não foi possível conectar ao Supabase a partir da Vercel.');
+      }
+      const session = await r.json().catch(() => null);
+      if (!r.ok) {
+        const msg = session?.msg || session?.message || session?.error_description || session?.error;
+        if (r.status === 400 || r.status === 401) {
+          if (/invalid.*login|invalid.*credentials|email.*password/i.test(String(msg || ''))) throw fail(401, 'E-mail ou senha incorretos.');
+          throw fail(401, 'O Supabase recusou o login. Verifique a chave pública da Vercel.');
+        }
+        throw fail(502, 'Falha no Supabase durante o login (' + r.status + ').');
+      }
+      if (!session?.access_token || !session?.refresh_token) throw fail(502, 'O Supabase não retornou uma sessão válida.');
       setSession(res, session); return res.status(200).json({ ok: true });
     }
     if (route === 'refresh' && req.method === 'POST') {
