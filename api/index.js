@@ -168,8 +168,8 @@ function merge(state, incoming, profile) {
 }
 function emailKey(email) { return String(email || '').trim().toLowerCase(); }
 function assertUserInput(body) {
-  if (!body.nome?.trim() || !emailKey(body.email).includes('@') || typeof body.password !== 'string' || body.password.length < 12)
-    throw fail(400, 'Informe nome, e-mail e senha de pelo menos 12 caracteres.');
+  if (!body.nome?.trim() || !emailKey(body.email).includes('@') || typeof body.password !== 'string' || body.password.length < 5)
+    throw fail(400, 'Informe nome, e-mail e senha de pelo menos 5 caracteres.');
 }
 
 module.exports = async function handler(req, res) {
@@ -246,7 +246,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (route === 'password' && req.method === 'POST') {
-      if (typeof body.password !== 'string' || body.password.length < 12) throw fail(400, 'Use pelo menos 12 caracteres.');
+      if (typeof body.password !== 'string' || body.password.length < 5) throw fail(400, 'Use pelo menos 5 caracteres.');
       Object.assign(profile, passwordRecord(body.password));
       await writeStore(store, loaded.sha, 'data: update AGR password');
       setSession(res, profile);
@@ -302,7 +302,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (route === 'reset-user-password' && profile.role === 'admin' && req.method === 'POST') {
-      if (!body.id || typeof body.password !== 'string' || body.password.length < 12) throw fail(400, 'Informe o usuário e uma senha de pelo menos 12 caracteres.');
+      if (!body.id || typeof body.password !== 'string' || body.password.length < 5) throw fail(400, 'Informe o usuário e uma senha de pelo menos 5 caracteres.');
       const target = store.users.find(u => u.id === body.id && u.ownerId === profile.id && u.id !== profile.id);
       if (!target) throw fail(404, 'Usuário não encontrado.');
       Object.assign(target, passwordRecord(body.password));
