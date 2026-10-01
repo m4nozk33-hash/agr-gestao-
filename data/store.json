@@ -15,7 +15,7 @@
   ],
   "workspaces": {
     "d1cdc7b1-5773-4d15-8b5a-131ae88318d1": {
-      "version": 0,
+      "version": 1,
       "data": {
         "colabs": [
           {
@@ -39,8 +39,47 @@
             "nome": "Lucas"
           }
         ],
-        "clients": []
-      }
+        "clients": [
+          {
+            "id": 1790821788019,
+            "emp": "gela boca ",
+            "resp": "pedro paulo",
+            "doc": "",
+            "tel": "449999988485",
+            "wa": "o mesmo",
+            "ig": "gela boca agencia",
+            "email": "gelaboca@gmail.com",
+            "end": "",
+            "cid": "",
+            "uf": "",
+            "colab": 3,
+            "st": "Primeiro contato",
+            "fech": "",
+            "fim": "",
+            "sv": [
+              {
+                "n": "Gestão de Instagram",
+                "v": 10000,
+                "ini": "2026-09-30",
+                "per": "Mensal",
+                "venc": "2026-10-10"
+              }
+            ],
+            "et": {
+              "0": "2026-09-30"
+            },
+            "pays": [],
+            "hist": [
+              {
+                "d": "2026-09-30",
+                "t": "Observação",
+                "x": "Cliente cadastrado."
+              }
+            ]
+          }
+        ]
+      },
+      "updatedAt": "2026-10-01T02:29:48.110Z"
     }
   },
   "legacySeed": {
