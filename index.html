@@ -39,8 +39,10 @@ body.signed-in{display:grid;grid-template-columns:210px minmax(0,1fr);grid-templ
 .appbar button,.brand-link{display:flex;align-items:center;gap:10px;background:transparent;color:var(--tx);border:0;cursor:pointer}
 .brand-link{text-align:left;padding:0}.brand-link img{width:44px;height:44px;object-fit:contain;flex:none}.brand-link b{display:block;color:var(--ac);font-size:16px}.brand-link small{display:block;color:var(--mu);font-size:11px}
 .account-tools{display:flex;align-items:center;gap:12px;min-width:0}.account-photo{width:42px;height:42px;border-radius:50%;object-fit:contain;background:var(--bg);flex:none}.account-fallback{display:grid;place-items:center;color:var(--ac);font-weight:700}.account-name{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.account-tools small{display:block;color:var(--mu);font-size:11px}
-body.signed-in nav{top:0;height:100vh}
-@media(max-width:800px){.appbar{padding:10px 12px}.appbar .brand-link small{display:none}.account-tools{gap:4px}.account-name{max-width:105px}.appbar button{padding:6px;gap:6px}body.signed-in nav{height:auto;position:static}nav .brand-link{display:none}}
+body.signed-in nav{top:76px;height:calc(100vh - 76px)}
+.appbar{justify-content:flex-end;padding-left:230px}.appbar>.brand-link{position:fixed;top:0;left:0;z-index:60;width:210px;min-height:76px;padding:10px 20px;background:var(--cd);border-bottom:1px solid var(--bd)}
+@media(max-width:800px){.appbar{padding-left:132px}.appbar>.brand-link{width:120px;padding:10px 12px}}
+@media(max-width:800px){.appbar{padding:10px 12px 10px 132px}.appbar .brand-link small{display:none}.account-tools{gap:4px}.account-name{max-width:105px}.appbar button{padding:6px;gap:6px}body.signed-in nav{height:auto;position:static}nav .brand-link{display:none}}
 </style></head><body>
 <header id="appbar" class="appbar" hidden style="display:none"></header><nav id="nv"></nav><div class="workspace"><main id="mn"></main></div><dialog id="m"></dialog>
 <script>
