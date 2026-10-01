@@ -47,7 +47,7 @@
   ],
   "workspaces": {
     "d1cdc7b1-5773-4d15-8b5a-131ae88318d1": {
-      "version": 22,
+      "version": 23,
       "data": {
         "colabs": [
           {
@@ -106,7 +106,7 @@
           }
         ]
       },
-      "updatedAt": "2026-10-01T09:13:12.417Z"
+      "updatedAt": "2026-10-01T14:44:41.388Z"
     },
     "d22fbd82-9459-4ce8-a876-556d3a2601d5": {
       "version": 0,
