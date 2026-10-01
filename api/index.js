@@ -27,8 +27,9 @@ async function gh(url, options = {}) {
       headers: { ...ghHeaders(), ...(options.headers || {}) },
       signal: AbortSignal.timeout(12000)
     });
-  } catch {
-    throw fail(503, 'Não foi possível conectar ao GitHub.');
+  } catch (e) {
+    const detail = [e?.name, e?.code, e?.cause?.code, e?.message].filter(Boolean).join(' / ').slice(0, 220);
+    throw fail(503, 'Não foi possível conectar ao GitHub' + (detail ? ': ' + detail : '.'));
   }
   const body = await r.json().catch(() => null);
   if (!r.ok) {
