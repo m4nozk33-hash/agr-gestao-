@@ -52,9 +52,9 @@ const pd=n=>String(n).padStart(2,'0'),iso=d=>`${d.getFullYear()}-${pd(d.getMonth
 const TODAY=iso(new Date()),CUR=TODAY.slice(0,7);
 const addD=(s,n)=>{const d=new Date(s+'T12:00');d.setDate(d.getDate()+n);return iso(d)};
 const addM=(m,n)=>{let[y,x]=m.split('-').map(Number);x+=n-1;y+=Math.floor(x/12);x=((x%12)+12)%12;return y+'-'+pd(x+1)};
-const ST=['Lead','Primeiro contato','Reunião marcada','Proposta enviada','Em negociação','Fechado','Cliente ativo','Pagamento pendente','Atrasado','Cancelado','Perdido'];
-const COL={'Lead':'#64748b','Primeiro contato':'#0ea5e9','Reunião marcada':'#6366f1','Proposta enviada':'#a855f7','Em negociação':'#f59e0b','Fechado':'#14b8a6','Cliente ativo':'#16a34a','Pagamento pendente':'#eab308','Atrasado':'#dc2626','Cancelado':'#9f1239','Perdido':'#78716c'};
-const ACT=['Fechado','Cliente ativo','Pagamento pendente','Atrasado'],NEG=ST.slice(0,5);
+const ST=['Lead','Primeiro contato','Reunião marcada','Negociação','Cliente fechado','Cliente ativo','Pagamento pendente','Atrasado','Cancelado','Perdido'];
+const COL={'Lead':'#64748b','Primeiro contato':'#0ea5e9','Reunião marcada':'#8b5cf6','Negociação':'#f59e0b','Cliente fechado':'#dc2626','Cliente ativo':'#ec4899','Pagamento pendente':'#dc2626','Atrasado':'#dc2626','Cancelado':'#64748b','Perdido':'#64748b','Em negociação':'#f59e0b','Fechado':'#dc2626','Proposta enviada':'#f59e0b'};
+const ACT=['Cliente fechado','Fechado','Cliente ativo','Pagamento pendente','Atrasado'],NEG=['Lead','Primeiro contato','Reunião marcada','Negociação'];
 const ET=['Lead criado','Contato realizado','Reunião marcada','Reunião realizada','Proposta enviada','Negociação','Contrato fechado','Pagamento realizado','Cliente ativo'];
 const SRV=['Gestão de Instagram','Gestão de tráfego pago','Criação de conteúdo','Desenvolvimento de site','Desenvolvimento de sistema','Consultoria de marketing','Registro de marcas','Outros'];
 const PER=['Mensal','Trimestral','Anual','Único'],HT=['Observação','Ligação','Reunião','Mensagem','Proposta','Contrato'];
@@ -70,7 +70,7 @@ async function api(route,body,method,canRefresh=true){
  }
  if(!r.ok)throw Object.assign(new Error(result.error||'Falha na conexão.'),{status:r.status});return result;
 }
-async function loadShared(){const x=await api('state');S=x.state;VERSION=x.version;committed=structuredClone(S)}
+async function loadShared(){const x=await api('state');S=x.state;S.clients=(S.clients||[]).map(c=>({...c,st:c.st==='Em negociação'?'Negociação':c.st==='Fechado'?'Cliente fechado':c.st==='Proposta enviada'?'Negociação':c.st}));VERSION=x.version;committed=structuredClone(S)}
 function statusSync(message,error=false){let n=document.querySelector('#sync');if(!n){n=document.createElement('div');n.id='sync';n.style.cssText='position:fixed;bottom:12px;right:12px;padding:9px 15px;background:#fff;border:1px solid #ddd;border-radius:8px;font-size:12px;z-index:99';document.body.append(n)}n.textContent=message;n.style.color=error?'#b91c1c':'#166534'}
 function backupAttempt(snapshot){const a=document.createElement('a');const url=URL.createObjectURL(new Blob([JSON.stringify(snapshot,null,2)],{type:'application/json'}));a.href=url;a.download='AGR-alteracoes-nao-salvas.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function save(){
@@ -128,7 +128,7 @@ function render(){if(!ME)return login();
  if(ME.role!='admin'){if(!(V.v=='cli'&&gc(V.id)?.colab==ME.colabId))V={v:'col',id:ME.colabId}}
  document.body.classList.add('signed-in');renderAppbar();nav();$('#mn').innerHTML=({dash,eq,col,cli,usr,newusr}[V.v])()}
 function dash(){const r=rng(),p=prv(r),C=S.clients,fat=pay(C,r),ant=pay(C,p),cr=ant?(fat-ant)/ant*100:0,rec=pay(C,r,1),pen=pay(C,r,0),com=pay(C,r,null,1);
- const at=C.filter(c=>ACT.includes(c.st)),mrr=at.reduce((a,c)=>a+mens(c),0),prop=C.filter(c=>['Proposta enviada','Em negociação'].includes(c.st)).reduce((a,c)=>a+mens(c),0);
+ const at=C.filter(c=>ACT.includes(c.st)),mrr=at.reduce((a,c)=>a+mens(c),0),prop=C.filter(c=>c.st=='Negociação').reduce((a,c)=>a+mens(c),0);
  const nv=C.filter(c=>c.fech&&inR(c.fech,r)),cn=C.filter(c=>c.st=='Cancelado'&&inR(c.fim,r));
  const n=F.t=='ano'?12:6,ms=[];for(let i=n-1;i>=0;i--)ms.push(addM(CUR,-i));const lb=ms.map(mlab);
  const fm=ms.map(m=>pay(C,[m+'-01',m+'-31'])),cm=ms.map(m=>pay(C,[m+'-01',m+'-31'],null,1));
