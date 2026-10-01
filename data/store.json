@@ -47,7 +47,7 @@
   ],
   "workspaces": {
     "d1cdc7b1-5773-4d15-8b5a-131ae88318d1": {
-      "version": 6,
+      "version": 7,
       "data": {
         "colabs": [
           {
@@ -114,7 +114,7 @@
             "cid": "",
             "uf": "",
             "colab": 2,
-            "st": "Proposta enviada",
+            "st": "Aguardando resposta",
             "fech": "",
             "fim": "",
             "sv": [
@@ -142,10 +142,49 @@
                 "x": "Status alterado para Proposta enviada."
               }
             ]
+          },
+          {
+            "id": 1790828636200,
+            "emp": "gela boca",
+            "resp": "pedro minisco",
+            "doc": "",
+            "tel": "44998545295",
+            "wa": "do dono ",
+            "ig": "gela boca oficial",
+            "email": "gelaboca_sorvetes@gmail.com",
+            "end": "",
+            "cid": "",
+            "uf": "",
+            "obs": "",
+            "photo": "",
+            "colab": 3,
+            "st": "Negociação",
+            "fech": "",
+            "fim": "",
+            "sv": [
+              {
+                "n": "Criação de conteúdo",
+                "v": 150000,
+                "ini": "2026-10-01",
+                "per": "Mensal",
+                "venc": "2026-11-10"
+              }
+            ],
+            "et": {
+              "0": "2026-10-01"
+            },
+            "pays": [],
+            "hist": [
+              {
+                "d": "2026-10-01",
+                "t": "Observação",
+                "x": "Cliente cadastrado."
+              }
+            ]
           }
         ]
       },
-      "updatedAt": "2026-10-01T03:49:42.018Z"
+      "updatedAt": "2026-10-01T04:23:58.086Z"
     },
     "d22fbd82-9459-4ce8-a876-556d3a2601d5": {
       "version": 0,
