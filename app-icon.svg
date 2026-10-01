@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<rect width="512" height="512" rx="110" fill="#0f1117"/>
+<rect x="34" y="34" width="444" height="444" rx="86" fill="#171b25" stroke="#3b82f6" stroke-width="12"/>
+<path d="M122 357 221 135h70l99 222h-74l-18-47H214l-18 47h-74Zm116-108h51l-25-66-26 66Z" fill="#60a5fa"/>
+<text x="256" y="420" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="74" font-weight="700" fill="#fff">AGR</text>
+</svg>
