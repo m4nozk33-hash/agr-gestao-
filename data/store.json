@@ -15,7 +15,7 @@
   ],
   "workspaces": {
     "d1cdc7b1-5773-4d15-8b5a-131ae88318d1": {
-      "version": 3,
+      "version": 4,
       "data": {
         "colabs": [
           {
@@ -42,13 +42,13 @@
         "clients": [
           {
             "id": 1790821788019,
-            "emp": "gela boca ",
-            "resp": "pedro paulo",
+            "emp": "",
+            "resp": "",
             "doc": "",
-            "tel": "449999988485",
-            "wa": "o mesmo",
-            "ig": "gela boca agencia",
-            "email": "gelaboca@gmail.com",
+            "tel": "",
+            "wa": "",
+            "ig": "",
+            "email": "",
             "end": "",
             "cid": "",
             "uf": "",
@@ -71,7 +71,7 @@
           }
         ]
       },
-      "updatedAt": "2026-10-01T02:33:06.097Z"
+      "updatedAt": "2026-10-01T02:33:33.504Z"
     }
   },
   "legacySeed": {
