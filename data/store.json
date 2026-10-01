@@ -11,6 +11,16 @@
       "ownerId": "d1cdc7b1-5773-4d15-8b5a-131ae88318d1",
       "passwordSalt": "8db831729c2705cf69a6cff0edd42ff7",
       "passwordHash": "cdf53334c32902b4cd58f46dbe246ec1275af89573229a856fa631b121c87b7d403213247fd2eb9c84624a4ca09c6beb22729cc208eb8ca37c238e253f775815"
+    },
+    {
+      "id": "d22fbd82-9459-4ce8-a876-556d3a2601d5",
+      "nome": "Lucas",
+      "email": "lucasjoselage@gmail.com",
+      "role": "admin",
+      "colabId": null,
+      "ownerId": "d22fbd82-9459-4ce8-a876-556d3a2601d5",
+      "passwordSalt": "a92c4300a002bcd54d084f114bbb4dbf",
+      "passwordHash": "d9ba0cb79021fb666cdcab23b21f700a913532df1d0dad2b5e4145bfd6fe605f6fe5fee87898afc3162b7bfb3934b9c861b009594bc0bfc02d7210a0343e8ebf"
     }
   ],
   "workspaces": {
@@ -72,6 +82,13 @@
         ]
       },
       "updatedAt": "2026-10-01T02:33:33.504Z"
+    },
+    "d22fbd82-9459-4ce8-a876-556d3a2601d5": {
+      "version": 0,
+      "data": {
+        "colabs": [],
+        "clients": []
+      }
     }
   },
   "legacySeed": {
