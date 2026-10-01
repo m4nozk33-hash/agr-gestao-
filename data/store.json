@@ -21,6 +21,16 @@
       "ownerId": "d22fbd82-9459-4ce8-a876-556d3a2601d5",
       "passwordSalt": "a92c4300a002bcd54d084f114bbb4dbf",
       "passwordHash": "d9ba0cb79021fb666cdcab23b21f700a913532df1d0dad2b5e4145bfd6fe605f6fe5fee87898afc3162b7bfb3934b9c861b009594bc0bfc02d7210a0343e8ebf"
+    },
+    {
+      "id": "b6dbb75d-4c7b-467c-afce-166d2f4ca90d",
+      "nome": "gabi",
+      "email": "gabispereraa@gmail.com",
+      "role": "user",
+      "colabId": 1,
+      "ownerId": "d1cdc7b1-5773-4d15-8b5a-131ae88318d1",
+      "passwordSalt": "4bd3dca0b92ad6ff802841345050663b",
+      "passwordHash": "bfcafd0c729709f80ff6a49ddd4a6315f8a85f8c633b61bd7a29189eb3106f7fdc122d68214098f58f9cf053c71575c62a04aa9dec663881273f9cde13ee380f"
     }
   ],
   "workspaces": {
