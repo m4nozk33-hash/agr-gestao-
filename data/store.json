@@ -47,7 +47,7 @@
   ],
   "workspaces": {
     "d1cdc7b1-5773-4d15-8b5a-131ae88318d1": {
-      "version": 20,
+      "version": 21,
       "data": {
         "colabs": [
           {
@@ -76,10 +76,10 @@
             "id": 1790845332889,
             "emp": "Jrn-marmitas e encomendas",
             "resp": "Wallace",
-            "doc": "",
+            "doc": "27579380000117",
             "tel": "Da loja",
             "wa": "4497352665",
-            "ig": "",
+            "ig": "https://www.instagram.com/jrnmarmitas/",
             "email": "jrnmarmitaseencomendas@gmail.com",
             "end": "",
             "cid": "",
@@ -105,7 +105,7 @@
           }
         ]
       },
-      "updatedAt": "2026-10-01T09:02:29.725Z"
+      "updatedAt": "2026-10-01T09:03:55.436Z"
     },
     "d22fbd82-9459-4ce8-a876-556d3a2601d5": {
       "version": 0,
