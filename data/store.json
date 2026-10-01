@@ -46,7 +46,7 @@
   ],
   "workspaces": {
     "d1cdc7b1-5773-4d15-8b5a-131ae88318d1": {
-      "version": 4,
+      "version": 5,
       "data": {
         "colabs": [
           {
@@ -99,10 +99,47 @@
                 "x": "Cliente cadastrado."
               }
             ]
+          },
+          {
+            "id": 1790825693778,
+            "emp": "fanta ",
+            "resp": "thiago ",
+            "doc": "",
+            "tel": "0000000900",
+            "wa": "990000099990",
+            "ig": "@gslandbk",
+            "email": "majdjdnsksjj",
+            "end": "",
+            "cid": "",
+            "uf": "",
+            "colab": 2,
+            "st": "Primeiro contato",
+            "fech": "",
+            "fim": "",
+            "sv": [
+              {
+                "n": "Consultoria de marketing",
+                "v": 9090,
+                "ini": "2026-10-01",
+                "per": "Mensal",
+                "venc": "2026-11-10"
+              }
+            ],
+            "et": {
+              "0": "2026-10-01"
+            },
+            "pays": [],
+            "hist": [
+              {
+                "d": "2026-10-01",
+                "t": "Observação",
+                "x": "Cliente cadastrado."
+              }
+            ]
           }
         ]
       },
-      "updatedAt": "2026-10-01T02:33:33.504Z"
+      "updatedAt": "2026-10-01T03:34:54.032Z"
     },
     "d22fbd82-9459-4ce8-a876-556d3a2601d5": {
       "version": 0,
