@@ -1,8 +1,48 @@
 {
   "schema": 1,
-  "legacyClaimed": false,
-  "users": [],
-  "workspaces": {},
+  "legacyClaimed": true,
+  "users": [
+    {
+      "id": "d1cdc7b1-5773-4d15-8b5a-131ae88318d1",
+      "nome": "emanuel (adm)",
+      "email": "m4nozk33@gmail.com",
+      "role": "admin",
+      "colabId": null,
+      "ownerId": "d1cdc7b1-5773-4d15-8b5a-131ae88318d1",
+      "passwordSalt": "8db831729c2705cf69a6cff0edd42ff7",
+      "passwordHash": "cdf53334c32902b4cd58f46dbe246ec1275af89573229a856fa631b121c87b7d403213247fd2eb9c84624a4ca09c6beb22729cc208eb8ca37c238e253f775815"
+    }
+  ],
+  "workspaces": {
+    "d1cdc7b1-5773-4d15-8b5a-131ae88318d1": {
+      "version": 0,
+      "data": {
+        "colabs": [
+          {
+            "id": 1,
+            "com": 60,
+            "nome": "Gabi"
+          },
+          {
+            "id": 2,
+            "com": 60,
+            "nome": "Laura"
+          },
+          {
+            "id": 3,
+            "com": 60,
+            "nome": "Emanuel"
+          },
+          {
+            "id": 4,
+            "com": 60,
+            "nome": "Lucas"
+          }
+        ],
+        "clients": []
+      }
+    }
+  },
   "legacySeed": {
     "colabs": [
       {
