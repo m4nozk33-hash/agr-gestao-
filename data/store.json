@@ -47,7 +47,7 @@
   ],
   "workspaces": {
     "d1cdc7b1-5773-4d15-8b5a-131ae88318d1": {
-      "version": 18,
+      "version": 19,
       "data": {
         "colabs": [
           {
@@ -71,9 +71,41 @@
             "nome": "Lucas"
           }
         ],
-        "clients": []
+        "clients": [
+          {
+            "id": 1790845332889,
+            "emp": "Jrn-marmitas e encomendas",
+            "resp": "Wallace",
+            "doc": "",
+            "tel": "Da loja",
+            "wa": "4497352665",
+            "ig": "",
+            "email": "jrnmarmitaseencomendas@gmail.com",
+            "end": "",
+            "cid": "",
+            "uf": "",
+            "obs": "",
+            "photo": "",
+            "colab": 3,
+            "st": "Cliente ativo",
+            "fech": "2026-10-01",
+            "fim": "",
+            "sv": [],
+            "et": {
+              "0": "2026-10-01"
+            },
+            "pays": [],
+            "hist": [
+              {
+                "d": "2026-10-01",
+                "t": "Observação",
+                "x": "Cliente cadastrado."
+              }
+            ]
+          }
+        ]
       },
-      "updatedAt": "2026-10-01T08:46:45.025Z"
+      "updatedAt": "2026-10-01T09:02:13.804Z"
     },
     "d22fbd82-9459-4ce8-a876-556d3a2601d5": {
       "version": 0,
