@@ -148,7 +148,7 @@ function validate(s) {
   for (const c of s.clients) {
     if (!Number.isSafeInteger(c.id) || clientIds.has(c.id) || !ids.has(c.colab) || typeof c.emp !== 'string' || c.emp.length > 300 || !Array.isArray(c.sv) || !Array.isArray(c.pays) || !Array.isArray(c.hist) || !c.et || typeof c.et !== 'object') throw fail(400, 'Cliente inválido.');
     clientIds.add(c.id);
-    const status = ['Lead','Primeiro contato','Reunião marcada','Proposta enviada','Em negociação','Fechado','Cliente ativo','Pagamento pendente','Atrasado','Cancelado','Perdido'];
+    const status = ['Lead','Primeiro contato','Reunião marcada','Negociação','Aguardando resposta','Cliente ativo','Pagamento pendente','Atrasado','Cancelado','Perdido','Finalizado','Proposta enviada','Em negociação','Fechado','Cliente fechado'];
     if (!status.includes(c.st)) throw fail(400, 'Status inválido.');
     for (const item of c.sv) if (!['Mensal','Trimestral','Anual','Único'].includes(item.per)) throw fail(400, 'Periodicidade inválida.');
     for (const item of c.hist) if (!['Observação','Ligação','Reunião','Mensagem','Proposta','Contrato'].includes(item.t)) throw fail(400, 'Tipo de histórico inválido.');
