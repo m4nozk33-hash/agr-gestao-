@@ -47,7 +47,7 @@
   ],
   "workspaces": {
     "d1cdc7b1-5773-4d15-8b5a-131ae88318d1": {
-      "version": 5,
+      "version": 6,
       "data": {
         "colabs": [
           {
@@ -114,7 +114,7 @@
             "cid": "",
             "uf": "",
             "colab": 2,
-            "st": "Primeiro contato",
+            "st": "Proposta enviada",
             "fech": "",
             "fim": "",
             "sv": [
@@ -135,12 +135,17 @@
                 "d": "2026-10-01",
                 "t": "Observação",
                 "x": "Cliente cadastrado."
+              },
+              {
+                "d": "2026-10-01",
+                "t": "Observação",
+                "x": "Status alterado para Proposta enviada."
               }
             ]
           }
         ]
       },
-      "updatedAt": "2026-10-01T03:34:54.032Z"
+      "updatedAt": "2026-10-01T03:49:42.018Z"
     },
     "d22fbd82-9459-4ce8-a876-556d3a2601d5": {
       "version": 0,
