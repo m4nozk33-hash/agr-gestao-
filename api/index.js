@@ -123,7 +123,7 @@ function workspace(store, profile) {
   return row;
 }
 function profilesFor(store, p) {
-  if (p.role === 'admin') return store.users.filter(u => u.ownerId === p.id);
+  if (p.role === 'admin') return store.users;
   return store.users.filter(u => u.id === p.id);
 }
 function view(state, profile, profiles) {
@@ -316,4 +316,4 @@ module.exports = async function handler(req, res) {
   }
 };
 
-module.exports._test = { merge, validate, view, workspaceOwner, passwordRecord, passwordOk };
+module.exports._test = { merge, validate, view, workspaceOwner, profilesFor, passwordRecord, passwordOk };
