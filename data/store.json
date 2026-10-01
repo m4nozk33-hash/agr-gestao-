@@ -31,6 +31,16 @@
       "ownerId": "d1cdc7b1-5773-4d15-8b5a-131ae88318d1",
       "passwordSalt": "4bd3dca0b92ad6ff802841345050663b",
       "passwordHash": "bfcafd0c729709f80ff6a49ddd4a6315f8a85f8c633b61bd7a29189eb3106f7fdc122d68214098f58f9cf053c71575c62a04aa9dec663881273f9cde13ee380f"
+    },
+    {
+      "id": "357c1a6b-9c5b-4fda-b74d-8f293de4a0a9",
+      "nome": "laura",
+      "email": "lauracatarinaandrade@gmail.com",
+      "role": "user",
+      "colabId": 2,
+      "ownerId": "d1cdc7b1-5773-4d15-8b5a-131ae88318d1",
+      "passwordSalt": "12fe127ec99bd4e017090cfb72dd8fe2",
+      "passwordHash": "90b36a449a3fc2a0e5900a8f64b9d2ce183bc24c87c379be933e6c851a7a959065ca5723481cbb19b13cdcda21545e69c8be4c55982a41a06a57e0c29a8feb0e"
     }
   ],
   "workspaces": {
