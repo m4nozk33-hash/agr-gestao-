@@ -106,8 +106,12 @@ function passwordOk(user, password) {
 }
 const publicProfile = u => ({
   id: u.id, nome: u.nome, email: u.email, role: u.role,
-  colabId: u.colabId ?? null, ownerId: u.ownerId
+  colabId: u.colabId ?? null, ownerId: u.ownerId, photo: u.photo || null
 });
+function validatePhoto(photo) {
+  if (photo !== null && (typeof photo !== 'string' || photo.length > 180000 || !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(photo)))
+    throw fail(400, 'Foto inválida. Selecione uma imagem JPEG, PNG ou WebP.');
+}
 function identityFrom(store, req) {
   const session = verify(cookies(req).agr_session);
   const user = store.users.find(u => u.id === session.id);
@@ -245,6 +249,13 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ user: publicProfile(profile) });
     }
 
+    if (route === 'profile-photo' && req.method === 'PUT') {
+      validatePhoto(body.photo);
+      profile.photo = body.photo;
+      await writeStore(store, loaded.sha, 'data: update AGR profile photo');
+      return res.status(200).json({ user: publicProfile(profile) });
+    }
+
     if (route === 'password' && req.method === 'POST') {
       if (typeof body.password !== 'string' || body.password.length < 5) throw fail(400, 'Use pelo menos 5 caracteres.');
       Object.assign(profile, passwordRecord(body.password));
@@ -316,4 +327,4 @@ module.exports = async function handler(req, res) {
   }
 };
 
-module.exports._test = { merge, validate, view, workspaceOwner, profilesFor, passwordRecord, passwordOk };
+module.exports._test = { merge, validate, view, workspaceOwner, profilesFor, validatePhoto, passwordRecord, passwordOk };

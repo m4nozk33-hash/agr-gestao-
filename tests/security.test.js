@@ -22,3 +22,10 @@ test('ADM lista todas as contas sem expor senhas; colaborador vê só a própria
   a.ok(result.users.every(u=>!('passwordHash' in u)&&!('passwordSalt' in u)));
   a.deepEqual(profilesFor(store,gabi),[gabi]);
 });
+
+test('foto de perfil aceita imagens limitadas e rejeita URLs ou SVG',()=>{
+  const {validatePhoto}=handler._test;
+  a.doesNotThrow(()=>validatePhoto(null));
+  a.doesNotThrow(()=>validatePhoto('data:image/webp;base64,YWJj'));
+  for(const photo of [undefined,{},'https://example.com/a.png','data:image/svg+xml;base64,YWJj','data:image/png;base64,'+'A'.repeat(180000)])a.throws(()=>validatePhoto(photo),e=>e.status===400);
+});
