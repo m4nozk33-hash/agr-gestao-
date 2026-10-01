@@ -15,7 +15,7 @@
   ],
   "workspaces": {
     "d1cdc7b1-5773-4d15-8b5a-131ae88318d1": {
-      "version": 2,
+      "version": 3,
       "data": {
         "colabs": [
           {
@@ -56,15 +56,7 @@
             "st": "Primeiro contato",
             "fech": "",
             "fim": "",
-            "sv": [
-              {
-                "n": "Gestão de Instagram",
-                "v": 10000,
-                "ini": "2026-09-30",
-                "per": "Mensal",
-                "venc": "2026-10-10"
-              }
-            ],
+            "sv": [],
             "et": {
               "0": "2026-09-30"
             },
@@ -79,7 +71,7 @@
           }
         ]
       },
-      "updatedAt": "2026-10-01T02:30:29.353Z"
+      "updatedAt": "2026-10-01T02:33:06.097Z"
     }
   },
   "legacySeed": {
