@@ -15,7 +15,7 @@
   ],
   "workspaces": {
     "d1cdc7b1-5773-4d15-8b5a-131ae88318d1": {
-      "version": 1,
+      "version": 2,
       "data": {
         "colabs": [
           {
@@ -79,7 +79,7 @@
           }
         ]
       },
-      "updatedAt": "2026-10-01T02:29:48.110Z"
+      "updatedAt": "2026-10-01T02:30:29.353Z"
     }
   },
   "legacySeed": {
