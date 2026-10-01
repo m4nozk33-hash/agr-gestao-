@@ -47,7 +47,7 @@
   ],
   "workspaces": {
     "d1cdc7b1-5773-4d15-8b5a-131ae88318d1": {
-      "version": 17,
+      "version": 18,
       "data": {
         "colabs": [
           {
@@ -71,39 +71,9 @@
             "nome": "Lucas"
           }
         ],
-        "clients": [
-          {
-            "id": 1790821788019,
-            "emp": "",
-            "resp": "",
-            "doc": "",
-            "tel": "",
-            "wa": "",
-            "ig": "",
-            "email": "",
-            "end": "",
-            "cid": "",
-            "uf": "",
-            "colab": 3,
-            "st": "Primeiro contato",
-            "fech": "",
-            "fim": "",
-            "sv": [],
-            "et": {
-              "0": "2026-09-30"
-            },
-            "pays": [],
-            "hist": [
-              {
-                "d": "2026-09-30",
-                "t": "Observação",
-                "x": "Cliente cadastrado."
-              }
-            ]
-          }
-        ]
+        "clients": []
       },
-      "updatedAt": "2026-10-01T08:46:40.507Z"
+      "updatedAt": "2026-10-01T08:46:45.025Z"
     },
     "d22fbd82-9459-4ce8-a876-556d3a2601d5": {
       "version": 0,
