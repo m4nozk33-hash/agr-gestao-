@@ -47,7 +47,7 @@
   ],
   "workspaces": {
     "d1cdc7b1-5773-4d15-8b5a-131ae88318d1": {
-      "version": 24,
+      "version": 25,
       "data": {
         "colabs": [
           {
@@ -71,9 +71,56 @@
             "nome": "Lucas"
           }
         ],
-        "clients": []
+        "clients": [
+          {
+            "id": 1790949483092,
+            "emp": "jrn marmitas",
+            "resp": "wallace",
+            "doc": "",
+            "tel": "44998188160",
+            "wa": "44997352665",
+            "ig": "https://www.instagram.com/jrn.marmitas/",
+            "email": "jrnmarmitas@gmail.com",
+            "cep": "87033-230",
+            "end": "Avenida Lucílio de Held",
+            "cid": "Maringá",
+            "uf": "PR",
+            "obs": "",
+            "photo": "",
+            "colab": 3,
+            "st": "Cliente ativo",
+            "fech": "2026-10-02",
+            "fim": "",
+            "sv": [
+              {
+                "n": "Desenvolvimento de site, Gestão de tráfego pago",
+                "v": 630,
+                "ini": "2026-10-02",
+                "per": "Mensal",
+                "venc": "2026-11-10"
+              }
+            ],
+            "et": {
+              "0": "2026-10-02"
+            },
+            "pays": [
+              {
+                "d": "2026-10-10",
+                "v": 630,
+                "pago": false
+              }
+            ],
+            "hist": [
+              {
+                "d": "2026-10-02",
+                "t": "Observação",
+                "x": "Cliente cadastrado."
+              }
+            ]
+          }
+        ]
       },
-      "updatedAt": "2026-10-01T16:48:50.784Z"
+      "updatedAt": "2026-10-02T13:58:05.266Z"
     },
     "d22fbd82-9459-4ce8-a876-556d3a2601d5": {
       "version": 0,
