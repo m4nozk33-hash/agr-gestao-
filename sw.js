@@ -1,4 +1,4 @@
-const CACHE='agr-app-v3';
+const CACHE='agr-app-v4';
 const SHELL=['/','/index.html','/manifest.webmanifest','/app-icon.svg','/boleto.js'];
 const BOLETO_SCRIPT='<script src="/boleto.js"></script>';
 
