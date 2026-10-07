@@ -1,6 +1,6 @@
-const CACHE='agr-app-v4';
+const CACHE='agr-app-v5';
 const SHELL=['/','/index.html','/manifest.webmanifest','/app-icon.svg','/boleto.js'];
-const BOLETO_SCRIPT='<script src="/boleto.js"></script>';
+const BOLETO_SCRIPT='<script src="/boleto.js?v=5"></script>';
 
 function withBoletoScript(html){
   if(html.includes('/boleto.js'))return html;
@@ -38,6 +38,10 @@ self.addEventListener('fetch',event=>{
         return modified;
       }catch(_){const cached=await caches.match('/index.html');return cached?appResponse(cached):cached}
     })());
+    return;
+  }
+  if(url.pathname==='/boleto.js'){
+    event.respondWith(fetch(req).then(res=>{if(res.ok){const copy=res.clone();caches.open(CACHE).then(c=>c.put('/boleto.js',copy))}return res}).catch(()=>caches.match('/boleto.js')));
     return;
   }
   event.respondWith(caches.match(req).then(hit=>hit||fetch(req).then(res=>{if(res.ok){const copy=res.clone();caches.open(CACHE).then(c=>c.put(req,copy))}return res})));
