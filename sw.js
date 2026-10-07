@@ -1,4 +1,4 @@
-const CACHE='agr-app-v2';
+const CACHE='agr-app-v3';
 const SHELL=['/','/index.html','/manifest.webmanifest','/app-icon.svg','/boleto.js'];
 const BOLETO_SCRIPT='<script src="/boleto.js"></script>';
 
@@ -29,27 +29,16 @@ self.addEventListener('fetch',event=>{
   const req=event.request;
   const url=new URL(req.url);
   if(req.method!=='GET'||url.origin!==location.origin||url.pathname.startsWith('/api/'))return;
-
   if(req.mode==='navigate'){
     event.respondWith((async()=>{
       try{
         const network=await fetch(req);
         const modified=await appResponse(network);
-        if(modified&&modified.ok){
-          const copy=modified.clone();
-          caches.open(CACHE).then(c=>c.put('/index.html',copy));
-        }
+        if(modified&&modified.ok){const copy=modified.clone();caches.open(CACHE).then(c=>c.put('/index.html',copy))}
         return modified;
-      }catch(_){
-        const cached=await caches.match('/index.html');
-        return cached?appResponse(cached):cached;
-      }
+      }catch(_){const cached=await caches.match('/index.html');return cached?appResponse(cached):cached}
     })());
     return;
   }
-
-  event.respondWith(caches.match(req).then(hit=>hit||fetch(req).then(res=>{
-    if(res.ok){const copy=res.clone();caches.open(CACHE).then(c=>c.put(req,copy))}
-    return res;
-  })));
+  event.respondWith(caches.match(req).then(hit=>hit||fetch(req).then(res=>{if(res.ok){const copy=res.clone();caches.open(CACHE).then(c=>c.put(req,copy))}return res})));
 });
