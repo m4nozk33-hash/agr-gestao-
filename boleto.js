@@ -1,9 +1,9 @@
 (function(){
   function iniciarBoletos(){
     if(window.__agrBoletoPatch)return true;
-    if(typeof window.cli!=='function'||typeof window.gc!=='function'||typeof window.modal!=='function')return false;
+    if(typeof cli!=='function'||typeof gc!=='function'||typeof modal!=='function')return false;
     window.__agrBoletoPatch=true;
-    const originalCli=window.cli;
+    const originalCli=cli;
 
     function safeHttpUrl(value){
       const s=String(value||'').trim();if(!s)return'';
@@ -59,7 +59,7 @@
     window.copyBoleto=async function(id,index){const p=gc(id)?.pays?.[index],txt=String(p?.linhaDigitavel||'').trim();if(!txt)return;try{await navigator.clipboard.writeText(txt);alert('Linha digitável copiada.')}catch(_){prompt('Copie a linha digitável:',txt)}};
     window.delBoleto=function(id,index){const c=gc(id),p=c?.pays?.[index];if(!p||ME.role!=='admin')return;if(!confirm('Remover este boleto do cliente?'))return;c.pays.splice(index,1);done()};
 
-    try{if(typeof window.render==='function')window.render()}catch(_){ }
+    try{if(typeof render==='function')render()}catch(_){ }
     return true;
   }
 
