@@ -16,7 +16,6 @@
     if(line)out+=`<a style="cursor:pointer;color:var(--ac)" onclick="copyBoleto(${c.id},${index})">copiar linha</a>`;
     out+=`<a style="cursor:pointer;color:var(--ac)" onclick="attachBoletoPdf(${c.id},${index})">${p.boletoPdf?'trocar PDF':'anexar PDF'}</a>`;
     out+=`<a style="cursor:pointer;color:var(--ac)" onclick="editBoleto(${c.id},${index})">editar</a>`;
-    out+=`<a style="cursor:pointer;color:var(--ac)" onclick="togP(${c.id},${index})">${p.pago?'desfazer pago':'marcar pago'}</a>`;
     if(p.manualBoleto&&ME.role==='admin')out+=`<a style="cursor:pointer;color:var(--bad)" onclick="delBoleto(${c.id},${index})">remover</a>`;
     out+='</div>';return out;
   }
@@ -26,10 +25,14 @@
       if(p.boletoPdfName)details.push(`<small style="display:block;color:var(--mu);margin-top:4px">PDF: ${esc(p.boletoPdfName)}</small>`);
       if(p.linhaDigitavel)details.push(`<small style="display:block;color:var(--mu);margin-top:4px;max-width:520px;word-break:break-all">Linha: ${esc(p.linhaDigitavel)}</small>`);
       if(p.boletoObs)details.push(`<small style="display:block;color:var(--mu);margin-top:4px">${esc(p.boletoObs)}</small>`);
-      return `<tr><td>${br(p.d)}</td><td>${R(+p.v||0)}</td><td class="${st.cls}"><b>${st.label}</b></td><td>${hasBoleto(p)?'<span class="up">Boleto anexado</span>':'<span style="color:var(--mu)">Sem boleto</span>'}${details.join('')}</td><td>${boletoActions(c,p,i)}</td></tr>`}).join('');
-    return `<div class="cd tw"><div class="top"><div><h3 style="margin:0">Pagamentos e boletos</h3><small style="color:var(--mu)">Anexe o PDF do boleto ou informe o link/linha digitável de cada cobrança.</small></div><button onclick="addBoleto(${c.id})">+ Adicionar boleto</button></div><table style="min-width:820px;margin-top:12px"><tr><th>Vencimento</th><th>Valor</th><th>Situação</th><th>Boleto</th><th>Ações</th></tr>${rows||'<tr><td colspan="5">Sem pagamentos ou boletos.</td></tr>'}</table></div>`;
+      return `<tr><td>${br(p.d)}</td><td>${R(+p.v||0)}</td><td class="${st.cls}"><b>${st.label}</b></td><td>${hasBoleto(p)?'<span class="up">Boleto anexado</span>':'<span style="color:var(--mu)">Ainda não anexado</span>'}${details.join('')}</td><td>${boletoActions(c,p,i)}</td></tr>`}).join('');
+    return `<div class="cd tw" style="margin-bottom:12px"><div class="top"><div><h3 style="margin:0">Boletos</h3><small style="color:var(--mu)">Adicione o boleto deste cliente em PDF, por link ou linha digitável.</small></div><button onclick="addBoleto(${c.id})">+ Adicionar boleto</button></div><table style="min-width:820px;margin-top:12px"><tr><th>Vencimento</th><th>Valor</th><th>Situação</th><th>Boleto</th><th>Ações</th></tr>${rows||'<tr><td colspan="5">Nenhum boleto cadastrado.</td></tr>'}</table></div>`;
   }
-  window.cli=function(){const html=originalCli(),c=gc(V.id);if(!c)return html;return html.replace(/<div class="cd tw"><h3>Pagamentos<\/h3><table[\s\S]*?<\/table><\/div>/,renderBoletoSection(c))};
+  window.cli=function(){
+    const html=originalCli(),c=gc(V.id);if(!c)return html;
+    const re=/(<div class="cd tw" style="margin-bottom:12px"><div class="top"><h3 style="margin:0">Serviços contratados<\/h3>[\s\S]*?<\/table><\/div>)/;
+    return re.test(html)?html.replace(re,`$1${renderBoletoSection(c)}`):html;
+  };
 
   window.addBoleto=function(id){
     const c=gc(id);if(!c)return;
