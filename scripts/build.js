@@ -10,7 +10,7 @@ let html = fs.readFileSync('index.html', 'utf8');
 const scripts = [
   '<script src="/boleto.js?v=6" defer></script>',
   '<script src="/radar.js?v=2" defer></script>',
-  '<script src="/radar-access.js?v=1" defer></script>'
+  '<script src="/radar-access.js?v=2" defer></script>'
 ];
 
 // Remove referências/versões antigas para evitar carregamento duplicado.
