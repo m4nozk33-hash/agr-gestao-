@@ -16,3 +16,5 @@ A AGR Gestão ganhou um Radar de Novas Empresas para prospecção comercial.
 A busca paginada do Minha Receita é uma consulta sobre a base pública da Receita Federal, mas não é uma varredura integral de todos os registros do país em cada busca. Para cobertura nacional exaustiva, a próxima evolução é importar mensalmente a base completa de Dados Abertos do CNPJ para um banco dedicado e manter um índice próprio da AGR.
 
 A atualização dos dados depende da publicação/extração da base da Receita Federal.
+
+A função do Radar na Vercel deve executar preferencialmente na região de São Paulo (`gru1`) para reduzir bloqueios e latência ao consultar as fontes brasileiras.
