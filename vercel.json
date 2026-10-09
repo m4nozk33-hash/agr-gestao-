@@ -1,7 +1,22 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "public",
-  "rewrites": [{ "source": "/api/:route", "destination": "/api?route=:route" }],
+  "rewrites": [
+    { "source": "/api/health", "destination": "/api?route=health" },
+    { "source": "/api/login", "destination": "/api?route=login" },
+    { "source": "/api/refresh", "destination": "/api?route=refresh" },
+    { "source": "/api/logout", "destination": "/api?route=logout" },
+    { "source": "/api/bootstrap-admin", "destination": "/api?route=bootstrap-admin" },
+    { "source": "/api/recover-code", "destination": "/api?route=recover-code" },
+    { "source": "/api/verify-recovery-code", "destination": "/api?route=verify-recovery-code" },
+    { "source": "/api/recovery-session", "destination": "/api?route=recovery-session" },
+    { "source": "/api/session", "destination": "/api?route=session" },
+    { "source": "/api/profile-photo", "destination": "/api?route=profile-photo" },
+    { "source": "/api/password", "destination": "/api?route=password" },
+    { "source": "/api/state", "destination": "/api?route=state" },
+    { "source": "/api/users", "destination": "/api?route=users" },
+    { "source": "/api/reset-user-password", "destination": "/api?route=reset-user-password" }
+  ],
   "headers": [{ "source": "/(.*)", "headers": [
     { "key": "X-Content-Type-Options", "value": "nosniff" },
     { "key": "Referrer-Policy", "value": "same-origin" },
