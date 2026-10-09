@@ -6,6 +6,7 @@ const BRANCH = 'main';
 const STORE_PATH = 'data/store.json';
 const fail = (status, message) => Object.assign(new Error(message), { status });
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const RADAR_CACHE = globalThis.__AGR_RADAR_CACHE__ || (globalThis.__AGR_RADAR_CACHE__ = new Map());
 
 function token() {
   const value = process.env.GITHUB_DATA_TOKEN;
@@ -52,9 +53,9 @@ async function fetchJsonWithRetry(url, options = {}, timeout = 12000, label = 's
       return await fetchJson(url, options, timeout, label);
     } catch (e) {
       last = e;
-      const rateLimited = e?.status === 429 || /limite|rate.?limit|consultas por segundo/i.test(String(e?.message || ''));
+      const rateLimited = e?.status === 429 || /limite|rate.?limit|consultas por segundo|too many/i.test(String(e?.message || ''));
       if (!rateLimited || attempt === retries) throw e;
-      await sleep(1200 * (attempt + 1));
+      await sleep([1400, 3000, 5000][attempt] || 5000);
     }
   }
   throw last;
@@ -151,28 +152,21 @@ async function lookupCnpj(cnpj) {
 }
 
 async function searchMinhaReceita({ uf, municipio, cnae, cutoffIso, maxResults }) {
-  const base = new URLSearchParams({ uf, limit: '120' });
-  if (municipio) base.set('municipio', municipio);
-  if (cnae) base.set('cnae', cnae);
-  let cursor = null, scanned = 0;
+  const p = new URLSearchParams({ uf, limit: '1024' });
+  if (municipio) p.set('municipio', municipio);
+  if (cnae) p.set('cnae', cnae);
+
+  // Uma única consulta grande reduz drasticamente a chance de estourar o limite público.
+  const payload = await fetchJsonWithRetry(`https://minhareceita.org/?${p.toString()}`, {}, 15000, 'Minha Receita', 3);
+  const rows = Array.isArray(payload?.data) ? payload.data : [];
   const collected = [];
-  for (let page = 0; page < 2; page++) {
-    if (page > 0) await sleep(1200);
-    const p = new URLSearchParams(base);
-    if (cursor) p.set('cursor', cursor);
-    const payload = await fetchJsonWithRetry(`https://minhareceita.org/?${p.toString()}`, {}, 12000, 'Minha Receita', 2);
-    const rows = Array.isArray(payload?.data) ? payload.data : [];
-    scanned += rows.length;
-    for (const raw of rows) {
-      const company = normalizeCompany(raw);
-      if (!company.cnpj || !company.abertura || company.abertura < cutoffIso) continue;
-      if (company.situacao && !String(company.situacao).toUpperCase().includes('ATIVA')) continue;
-      collected.push(company);
-    }
-    cursor = payload?.cursor || null;
-    if (!cursor || collected.length >= maxResults * 2) break;
+  for (const raw of rows) {
+    const company = normalizeCompany(raw);
+    if (!company.cnpj || !company.abertura || company.abertura < cutoffIso) continue;
+    if (company.situacao && !String(company.situacao).toUpperCase().includes('ATIVA')) continue;
+    collected.push(company);
   }
-  return { data: collected, scanned, source: 'Minha Receita' };
+  return { data: collected, scanned: rows.length, source: 'Minha Receita' };
 }
 
 async function searchSintegra({ uf, city, cnae, days, cutoffIso, maxResults }) {
@@ -205,6 +199,10 @@ async function radarSearch(query) {
   cutoff.setDate(cutoff.getDate() - days);
   const cutoffIso = cutoff.toISOString().slice(0, 10);
 
+  const cacheKey = JSON.stringify({ uf, municipio, cnae, days, maxResults });
+  const cached = RADAR_CACHE.get(cacheKey);
+  if (cached && Date.now() - cached.at < 90000) return cached.value;
+
   const errors = [];
   let found = null;
   try { found = await searchMinhaReceita({ uf, municipio, cnae, cutoffIso, maxResults }); }
@@ -217,16 +215,16 @@ async function radarSearch(query) {
 
   if (!found) {
     const message = errors.length
-      ? errors.join(' | ')
+      ? errors[0]
       : 'Não foi possível consultar a base empresarial agora.';
-    throw fail(502, message);
+    throw fail(503, message);
   }
 
   const unique = [...new Map(found.data.map(x => [x.cnpj, x])).values()]
     .sort((a, b) => String(b.abertura).localeCompare(String(a.abertura)))
     .slice(0, maxResults);
 
-  return {
+  const value = {
     data: unique,
     meta: {
       uf, municipio: city || null, municipioCodigo: municipio, cnae: cnae || null, days,
@@ -237,6 +235,13 @@ async function radarSearch(query) {
       note: 'O Radar usa fontes públicas/terceiras baseadas nos dados do CNPJ e pode sofrer atraso de atualização. Para cobertura integral, use uma base própria atualizada com os arquivos oficiais da Receita Federal.'
     }
   };
+
+  RADAR_CACHE.set(cacheKey, { at: Date.now(), value });
+  if (RADAR_CACHE.size > 30) {
+    const oldest = [...RADAR_CACHE.entries()].sort((a, b) => a[1].at - b[1].at).slice(0, RADAR_CACHE.size - 30);
+    oldest.forEach(([k]) => RADAR_CACHE.delete(k));
+  }
+  return value;
 }
 
 module.exports = async function handler(req, res) {
