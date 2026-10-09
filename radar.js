@@ -20,13 +20,40 @@
     return data;
   }
 
+  function selectedRadarIndexes() {
+    return [...document.querySelectorAll('.radar-select:checked')].map(x => Number(x.dataset.index)).filter(Number.isInteger);
+  }
+
+  window.radarSelectionChanged = function radarSelectionChanged() {
+    const selected = selectedRadarIndexes();
+    const selectedBtn = $('#radar_pdf_selected_btn');
+    if (selectedBtn) {
+      selectedBtn.disabled = selected.length === 0;
+      selectedBtn.textContent = selected.length ? `📄 PDF selecionados (${selected.length})` : '📄 PDF selecionados';
+    }
+    const all = document.querySelectorAll('.radar-select');
+    const master = $('#radar_select_all');
+    if (master) {
+      master.checked = all.length > 0 && selected.length === all.length;
+      master.indeterminate = selected.length > 0 && selected.length < all.length;
+    }
+  };
+
+  window.radarToggleAll = function radarToggleAll(checked) {
+    document.querySelectorAll('.radar-select').forEach(x => { x.checked = !!checked; });
+    radarSelectionChanged();
+  };
+
   function radarCard(x, i) {
     const score = leadScore(x);
     const duplicate = S.clients.some(c => cleanCnpj(c.doc) === cleanCnpj(x.cnpj));
     const phoneUrl = whatsappUrl(x.telefone);
     return `<div class="cd" style="margin-bottom:10px">
       <div class="top" style="margin-bottom:8px">
-        <div style="min-width:0"><h3 style="margin:0 0 3px;overflow-wrap:anywhere">${radarEsc(x.fantasia || x.razaoSocial || x.nome)}</h3><small style="color:var(--mu)">${radarEsc(x.razaoSocial || '')}</small></div>
+        <div style="display:flex;align-items:flex-start;gap:10px;min-width:0">
+          <label title="Selecionar para PDF" style="display:flex;align-items:center;gap:5px;margin-top:2px;cursor:pointer;white-space:nowrap"><input type="checkbox" class="radar-select" data-index="${i}" onchange="radarSelectionChanged()"> Selecionar</label>
+          <div style="min-width:0"><h3 style="margin:0 0 3px;overflow-wrap:anywhere">${radarEsc(x.fantasia || x.razaoSocial || x.nome)}</h3><small style="color:var(--mu)">${radarEsc(x.razaoSocial || '')}</small></div>
+        </div>
         <span class="b" style="--c:${score >= 80 ? '#16a34a' : score >= 60 ? '#f59e0b' : '#64748b'}">Lead ${score} pts</span>
       </div>
       <div class="ig" style="margin-bottom:10px">
@@ -41,6 +68,7 @@
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         ${phoneUrl ? `<a class="wa-link" href="${radarEsc(phoneUrl)}" target="_blank" rel="noopener noreferrer"><span>WhatsApp</span><span class="contact-icon whatsapp" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.5 3.5A10 10 0 0 0 4.8 15.7L3 21l5.4-1.7A10 10 0 1 0 20.5 3.5Zm-8.4 16.1a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3.2 1 1-3.1-.2-.3A8.2 8.2 0 1 1 12.1 19.6Zm4.5-6.1c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.6.1-.2.2-.6.8-.8 1-.1.2-.3.2-.5.1-1.4-.7-2.4-1.3-3.3-2.9-.2-.3.2-.3.6-1 .1-.2.1-.4 0-.6l-.8-2c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.4-.6 1.6-1.2.2-.6.2-1.1.1-1.2-.1-.1-.2-.2-.5-.3Z"></path></svg></span></a>` : ''}
+        <button onclick="radarExportPdf('one', ${i})">📄 PDF desta empresa</button>
         <button ${duplicate ? 'disabled' : ''} onclick="radarAddLead(${i})">${duplicate ? '✓ Já está na AGR' : '+ Adicionar como lead'}</button>
       </div>
     </div>`;
@@ -61,7 +89,11 @@
         <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-top:10px">
           <label style="min-width:220px;margin:0">Adicionar lead para<select id="radar_colab">${S.colabs.map(c=>`<option value="${c.id}">${radarEsc(c.nome)}</option>`).join('')}</select></label>
           <button onclick="radarRun()">Pesquisar novas empresas</button>
-          <button id="radar_pdf_btn" onclick="radarExportPdf()" disabled>📄 Baixar PDF</button>
+          <button id="radar_pdf_all_btn" onclick="radarExportPdf('all')" disabled>📄 PDF de todos</button>
+          <button id="radar_pdf_selected_btn" onclick="radarExportPdf('selected')" disabled>📄 PDF selecionados</button>
+        </div>
+        <div id="radar_selection_bar" style="display:none;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--br)">
+          <label style="display:flex;align-items:center;gap:6px;margin:0;cursor:pointer"><input id="radar_select_all" type="checkbox" onchange="radarToggleAll(this.checked)"> Selecionar todas as empresas encontradas</label>
         </div>
         <p style="color:var(--mu);font-size:12px;margin:10px 0 0">Fonte: dados públicos do CNPJ. O radar consulta uma amostra paginada e filtra pela data de abertura; não representa uma varredura integral de todos os CNPJs do Brasil.</p>
       </div>
@@ -84,28 +116,48 @@
     RADAR_LOADING = true;
     status.innerHTML = 'Consultando a base empresarial…';
     results.innerHTML = '';
-    const pdfBtn = $('#radar_pdf_btn');
-    if (pdfBtn) pdfBtn.disabled = true;
+    const allBtn = $('#radar_pdf_all_btn'), selectedBtn = $('#radar_pdf_selected_btn'), selectionBar = $('#radar_selection_bar');
+    if (allBtn) allBtn.disabled = true;
+    if (selectedBtn) selectedBtn.disabled = true;
+    if (selectionBar) selectionBar.style.display = 'none';
     try {
       const response = await apiRadar({ mode: 'radar', ...filters });
       RADAR_RESULTS = response.data || [];
       const meta = response.meta || {};
       status.innerHTML = `<b>${RADAR_RESULTS.length} empresa(s) recente(s) localizada(s)</b><br><small style="color:var(--mu)">${meta.scanned || 0} registros analisados nesta consulta${meta.sourceUpdated ? ' · base: ' + radarEsc(String(meta.sourceUpdated)) : ''}</small>`;
       results.innerHTML = RADAR_RESULTS.length ? RADAR_RESULTS.map(radarCard).join('') : `<div class="cd"><b>Nenhuma empresa recente encontrada com estes filtros.</b><p style="color:var(--mu);margin-bottom:0">Tente aumentar o período, retirar o CNAE ou pesquisar outro município.</p></div>`;
-      if (pdfBtn) pdfBtn.disabled = RADAR_RESULTS.length === 0;
+      if (allBtn) allBtn.disabled = RADAR_RESULTS.length === 0;
+      if (selectionBar) selectionBar.style.display = RADAR_RESULTS.length ? 'flex' : 'none';
+      radarSelectionChanged();
     } catch (e) {
       status.innerHTML = `<span class="dn">${radarEsc(e.message)}</span>`;
     } finally { RADAR_LOADING = false; }
   };
 
-  window.radarExportPdf = function radarExportPdf() {
+  window.radarExportPdf = function radarExportPdf(mode = 'all', index = null) {
     if (!RADAR_RESULTS.length) { alert('Pesquise empresas no radar antes de gerar o PDF.'); return; }
+    let companies = [];
+    let title = 'Radar de Novas Empresas';
+    if (mode === 'one') {
+      const x = RADAR_RESULTS[Number(index)];
+      if (!x) return;
+      companies = [x];
+      title = 'Empresa selecionada no Radar';
+    } else if (mode === 'selected') {
+      const indexes = selectedRadarIndexes();
+      companies = indexes.map(i => RADAR_RESULTS[i]).filter(Boolean);
+      if (!companies.length) { alert('Selecione pelo menos uma empresa para gerar o PDF.'); return; }
+      title = 'Empresas selecionadas no Radar';
+    } else {
+      companies = RADAR_RESULTS.slice();
+    }
+
     const uf = $('#radar_uf')?.value || '';
     const municipio = $('#radar_municipio')?.value?.trim() || '';
     const cnae = $('#radar_cnae')?.value?.trim() || '';
     const periodo = $('#radar_days')?.selectedOptions?.[0]?.textContent || '';
     const generatedAt = new Date().toLocaleString('pt-BR');
-    const rows = RADAR_RESULTS.map((x, i) => `<tr>
+    const rows = companies.map((x, i) => `<tr>
       <td>${i + 1}</td>
       <td><b>${radarEsc(x.fantasia || x.razaoSocial || x.nome || 'Empresa')}</b><br><small>${radarEsc(x.razaoSocial || '')}</small></td>
       <td>${radarEsc(fmtCnpj(x.cnpj))}</td>
@@ -120,8 +172,8 @@
       @page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#111;margin:0;font-size:10px}h1{font-size:22px;margin:0 0 4px}h2{font-size:12px;font-weight:normal;margin:0 0 12px;color:#444}.meta{display:flex;gap:16px;flex-wrap:wrap;margin:0 0 12px;padding:8px;border:1px solid #ddd;border-radius:8px}.meta b{display:block;font-size:9px;text-transform:uppercase;color:#666;margin-bottom:2px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px;vertical-align:top;text-align:left}th{background:#f2f2f2;font-size:9px;text-transform:uppercase}tr{break-inside:avoid}small{color:#555}.foot{margin-top:10px;font-size:9px;color:#666}.no-print{margin-bottom:12px}@media print{.no-print{display:none}}
     </style></head><body>
       <div class="no-print"><button onclick="window.print()">Salvar / Imprimir em PDF</button></div>
-      <h1>AGR Marketing e Tecnologia</h1><h2>Radar de Novas Empresas</h2>
-      <div class="meta"><div><b>UF</b>${radarEsc(uf || 'Todas')}</div><div><b>Município</b>${radarEsc(municipio || 'Todos')}</div><div><b>CNAE</b>${radarEsc(cnae || 'Todos')}</div><div><b>Período</b>${radarEsc(periodo)}</div><div><b>Empresas</b>${RADAR_RESULTS.length}</div><div><b>Gerado em</b>${radarEsc(generatedAt)}</div></div>
+      <h1>AGR Marketing e Tecnologia</h1><h2>${radarEsc(title)}</h2>
+      <div class="meta"><div><b>UF</b>${radarEsc(uf || 'Todas')}</div><div><b>Município</b>${radarEsc(municipio || 'Todos')}</div><div><b>CNAE</b>${radarEsc(cnae || 'Todos')}</div><div><b>Período</b>${radarEsc(periodo)}</div><div><b>Empresas</b>${companies.length}</div><div><b>Gerado em</b>${radarEsc(generatedAt)}</div></div>
       <table><thead><tr><th>#</th><th>Empresa</th><th>CNPJ</th><th>Abertura</th><th>Atividade / CNAE</th><th>Telefone</th><th>E-mail</th><th>Local</th><th>Lead</th></tr></thead><tbody>${rows}</tbody></table>
       <div class="foot">Relatório gerado pelo Radar de Novas Empresas da AGR. Dados provenientes de fontes públicas/terceiras e sujeitos a atualização.</div>
       <script>window.addEventListener('load',()=>setTimeout(()=>window.print(),300));<\/script>
