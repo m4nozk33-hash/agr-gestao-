@@ -5,6 +5,7 @@ const REPO = 'agr-gestao-';
 const BRANCH = 'main';
 const STORE_PATH = 'data/store.json';
 const fail = (status, message) => Object.assign(new Error(message), { status });
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 function token() {
   const value = process.env.GITHUB_DATA_TOKEN;
@@ -39,9 +40,24 @@ async function fetchJson(url, options = {}, timeout = 12000, label = 'serviço e
   const body = await response.json().catch(() => null);
   if (!response.ok) {
     const detail = body?.message || body?.error || body?.detail || `HTTP ${response.status}`;
-    throw fail(response.status === 404 ? 404 : 502, `${label}: ${detail}`);
+    throw fail(response.status, `${label}: ${detail}`);
   }
   return body;
+}
+
+async function fetchJsonWithRetry(url, options = {}, timeout = 12000, label = 'serviço externo', retries = 2) {
+  let last;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fetchJson(url, options, timeout, label);
+    } catch (e) {
+      last = e;
+      const rateLimited = e?.status === 429 || /limite|rate.?limit|consultas por segundo/i.test(String(e?.message || ''));
+      if (!rateLimited || attempt === retries) throw e;
+      await sleep(1200 * (attempt + 1));
+    }
+  }
+  throw last;
 }
 
 async function authenticatedAdmin(req) {
@@ -128,7 +144,7 @@ async function lookupCnpj(cnpj) {
   ];
   let last;
   for (const [url, label] of providers) {
-    try { return normalizeCompany(await fetchJson(url, {}, 12000, label)); }
+    try { return normalizeCompany(await fetchJsonWithRetry(url, {}, 12000, label, label === 'Minha Receita' ? 2 : 0)); }
     catch (e) { last = e; }
   }
   throw fail(502, last?.message || 'Não foi possível consultar o CNPJ agora.');
@@ -141,9 +157,10 @@ async function searchMinhaReceita({ uf, municipio, cnae, cutoffIso, maxResults }
   let cursor = null, scanned = 0;
   const collected = [];
   for (let page = 0; page < 2; page++) {
+    if (page > 0) await sleep(1200);
     const p = new URLSearchParams(base);
     if (cursor) p.set('cursor', cursor);
-    const payload = await fetchJson(`https://minhareceita.org/?${p.toString()}`, {}, 12000, 'Minha Receita');
+    const payload = await fetchJsonWithRetry(`https://minhareceita.org/?${p.toString()}`, {}, 12000, 'Minha Receita', 2);
     const rows = Array.isArray(payload?.data) ? payload.data : [];
     scanned += rows.length;
     for (const raw of rows) {
@@ -159,13 +176,13 @@ async function searchMinhaReceita({ uf, municipio, cnae, cutoffIso, maxResults }
 }
 
 async function searchSintegra({ uf, city, cnae, days, cutoffIso, maxResults }) {
+  if (!process.env.SINTEGRA_API_KEY) throw fail(503, 'SINTEGRA não configurado.');
   const p = new URLSearchParams({ uf });
   if (city) p.set('municipio', city);
   if (cnae) p.set('cnae', cnae);
   p.set('dias', String(days));
   p.set('limit', String(Math.min(maxResults, 60)));
-  const headers = {};
-  if (process.env.SINTEGRA_API_KEY) headers['X-Api-Key'] = process.env.SINTEGRA_API_KEY;
+  const headers = { 'X-Api-Key': process.env.SINTEGRA_API_KEY };
   const payload = await fetchJson(`https://www.sintegrabrasil.com.br/api/v1/radar?${p.toString()}`, { headers }, 12000, 'Radar SINTEGRA Brasil');
   const rows = Array.isArray(payload) ? payload : (payload?.data || payload?.empresas || payload?.results || payload?.resultados || []);
   const list = Array.isArray(rows) ? rows : [];
@@ -192,11 +209,18 @@ async function radarSearch(query) {
   let found = null;
   try { found = await searchMinhaReceita({ uf, municipio, cnae, cutoffIso, maxResults }); }
   catch (e) { errors.push(e.message); }
-  if (!found || !found.data.length) {
+
+  if ((!found || !found.data.length) && process.env.SINTEGRA_API_KEY) {
     try { found = await searchSintegra({ uf, city, cnae, days, cutoffIso, maxResults }); }
     catch (e) { errors.push(e.message); }
   }
-  if (!found) throw fail(502, 'Não foi possível consultar as bases empresariais. ' + errors.join(' | '));
+
+  if (!found) {
+    const message = errors.length
+      ? errors.join(' | ')
+      : 'Não foi possível consultar a base empresarial agora.';
+    throw fail(502, message);
+  }
 
   const unique = [...new Map(found.data.map(x => [x.cnpj, x])).values()]
     .sort((a, b) => String(b.abertura).localeCompare(String(a.abertura)))
@@ -225,6 +249,7 @@ module.exports = async function handler(req, res) {
     if (mode === 'cnpj') return res.status(200).json({ company: await lookupCnpj(req.query?.cnpj) });
     return res.status(200).json(await radarSearch(req.query || {}));
   } catch (e) {
-    return res.status(e.status || 500).json({ error: e.message || 'Erro interno.' });
+    const status = [400, 401, 403, 404, 405, 429, 503].includes(e.status) ? e.status : 500;
+    return res.status(status).json({ error: e.message || 'Erro interno.' });
   }
 };
