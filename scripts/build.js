@@ -9,13 +9,15 @@ let html = fs.readFileSync('index.html', 'utf8');
 // interpreta como fechamento da tag <script>, fazendo o código aparecer na tela.
 const scripts = [
   '<script src="/boleto.js?v=6" defer></script>',
-  '<script src="/radar.js?v=1" defer></script>'
+  '<script src="/radar.js?v=2" defer></script>',
+  '<script src="/radar-access.js?v=1" defer></script>'
 ];
 
 // Remove referências/versões antigas para evitar carregamento duplicado.
 html = html
   .replace(/<script[^>]+src=["']\/boleto\.js[^>]*><\/script>/g, '')
   .replace(/<script[^>]+src=["']\/radar\.js[^>]*><\/script>/g, '')
+  .replace(/<script[^>]+src=["']\/radar-access\.js[^>]*><\/script>/g, '')
   .replace(/<script id=["']agr-boletos-inline["'][\s\S]*?<\/script>/g, '')
   .replace(/<script id=["']agr-radar-inline["'][\s\S]*?<\/script>/g, '');
 
@@ -26,6 +28,6 @@ html = html.includes('</body>')
 
 fs.writeFileSync('public/index.html', html);
 
-for (const file of ['manifest.webmanifest', 'app-icon.svg', 'sw.js', 'boleto.js', 'radar.js']) {
+for (const file of ['manifest.webmanifest', 'app-icon.svg', 'sw.js', 'boleto.js', 'radar.js', 'radar-access.js']) {
   if (fs.existsSync(file)) fs.copyFileSync(file, 'public/' + file);
 }
