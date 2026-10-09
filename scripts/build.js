@@ -27,6 +27,6 @@ if (radarCode) {
 
 fs.writeFileSync('public/index.html', html);
 
-for (const file of ['manifest.webmanifest', 'app-icon.svg', 'sw.js']) {
+for (const file of ['manifest.webmanifest', 'app-icon.svg', 'sw.js', 'boleto.js', 'radar.js']) {
   if (fs.existsSync(file)) fs.copyFileSync(file, 'public/' + file);
 }
