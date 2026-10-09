@@ -73,7 +73,7 @@ async function fetchJsonWithRetry(url, options = {}, timeout = 12000, label = 's
   throw last;
 }
 
-async function authenticatedAdmin(req) {
+async function authenticatedRadarUser(req) {
   const session = verify(cookies(req).agr_session);
   const gh = await fetchJson(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${STORE_PATH}?ref=${BRANCH}`, {
     headers: { Authorization: 'Bearer ' + token(), Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }
@@ -83,7 +83,8 @@ async function authenticatedAdmin(req) {
   try { store = JSON.parse(json); } catch { throw fail(500, 'Dados da AGR estão inválidos.'); }
   const user = store.users?.find(u => u.id === session.id);
   if (!user) throw fail(401, 'Seu acesso não existe mais.');
-  if (user.role !== 'admin') throw fail(403, 'O Radar de Empresas está disponível para administradores.');
+  const role = String(user.role || '').toLowerCase();
+  if (!['admin', 'colaborador'].includes(role)) throw fail(403, 'Seu perfil não possui acesso ao Radar de Empresas.');
   return user;
 }
 
@@ -226,15 +227,12 @@ async function radarSearch(query) {
   const errors = [];
   let found = null;
 
-  // SINTEGRA passa a ser a fonte principal do Radar. O acesso anônimo é aceito;
-  // se houver SINTEGRA_API_KEY, a chave é usada automaticamente.
   try {
     found = await searchSintegra({ uf, city, cnae, days, cutoffIso, maxResults });
   } catch (e) {
     errors.push(e.message);
   }
 
-  // Minha Receita fica apenas como contingência, pois a API pública não oferece SLA.
   if (!found || !found.data.length) {
     try {
       const mr = await searchMinhaReceita({ uf, municipio, cnae, cutoffIso });
@@ -282,7 +280,7 @@ module.exports = async function handler(req, res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   try {
     if (req.method !== 'GET') throw fail(405, 'Método não permitido.');
-    await authenticatedAdmin(req);
+    await authenticatedRadarUser(req);
     const mode = String(req.query?.mode || 'radar');
     if (mode === 'cnpj') return res.status(200).json({ company: await lookupCnpj(req.query?.cnpj) });
     return res.status(200).json(await radarSearch(req.query || {}));
