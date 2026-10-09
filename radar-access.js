@@ -1,10 +1,10 @@
 (() => {
-  const isCollaborator = () => String(ME?.role || '').toLowerCase() === 'colaborador';
+  const hasRadarAccess = () => ['admin', 'user', 'colaborador'].includes(String(ME?.role || '').toLowerCase());
 
   const previousNav = nav;
   nav = function navWithCollaboratorRadar() {
     previousNav();
-    if (!isCollaborator()) return;
+    if (!hasRadarAccess()) return;
     const nv = $('#nv');
     if (!nv || nv.querySelector('[data-radar-link]')) return;
     const link = document.createElement('a');
@@ -19,7 +19,7 @@
 
   const previousRender = render;
   render = function renderWithCollaboratorRadar() {
-    if (isCollaborator() && V.v === 'radar') {
+    if (hasRadarAccess() && V.v === 'radar') {
       $('#nv').style.display = '';
       $('#mn').style.padding = '';
       $('#mn').style.maxWidth = '';
