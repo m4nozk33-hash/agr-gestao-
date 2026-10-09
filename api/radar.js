@@ -34,15 +34,27 @@ function verify(value) {
 async function fetchJson(url, options = {}, timeout = 12000, label = 'serviço externo') {
   let response;
   try {
-    response = await fetch(url, { ...options, signal: AbortSignal.timeout(timeout) });
+    response = await fetch(url, {
+      ...options,
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'AGR-Radar/1.0',
+        ...(options.headers || {})
+      },
+      signal: AbortSignal.timeout(timeout)
+    });
   } catch (e) {
-    throw fail(502, `Falha de conexão com ${label}.`);
+    const detail = e?.cause?.code || e?.code || e?.name || 'erro de rede';
+    throw fail(502, `Falha de conexão com ${label} (${detail}).`);
   }
-  const body = await response.json().catch(() => null);
+  const text = await response.text().catch(() => '');
+  let body = null;
+  try { body = text ? JSON.parse(text) : null; } catch {}
   if (!response.ok) {
-    const detail = body?.message || body?.error || body?.detail || `HTTP ${response.status}`;
+    const detail = body?.message || body?.error || body?.detail || text?.slice(0, 160) || `HTTP ${response.status}`;
     throw fail(response.status, `${label}: ${detail}`);
   }
+  if (body == null) throw fail(502, `${label}: resposta inválida.`);
   return body;
 }
 
@@ -53,9 +65,9 @@ async function fetchJsonWithRetry(url, options = {}, timeout = 12000, label = 's
       return await fetchJson(url, options, timeout, label);
     } catch (e) {
       last = e;
-      const rateLimited = e?.status === 429 || /limite|rate.?limit|consultas por segundo|too many/i.test(String(e?.message || ''));
-      if (!rateLimited || attempt === retries) throw e;
-      await sleep([1400, 3000, 5000][attempt] || 5000);
+      const retryable = e?.status === 429 || e?.status === 502 || /limite|rate.?limit|consultas por segundo|too many|falha de conexão/i.test(String(e?.message || ''));
+      if (!retryable || attempt === retries) throw e;
+      await sleep([1600, 3500, 6000][attempt] || 6000);
     }
   }
   throw last;
@@ -88,7 +100,7 @@ function normalizeDate(value) {
 function normalizeCompany(d = {}) {
   const nestedAddress = d.endereco || d.address || {};
   const phone = d.ddd_telefone_1 || d.telefone || d.phone || d.ddd_telefone_2 || d.contato?.telefone || '';
-  const name = d.nome_fantasia || d.nomeFantasia || d.fantasia || d.razao_social || d.razaoSocial || d.nome || 'Empresa';
+  const name = d.nome_fantasia || d.nomeFantasia || d.fantasia || d.razao_social || d.razaoSocial || d.nome || d.nome_empresarial || 'Empresa';
   const addressParts = [
     d.descricao_tipo_de_logradouro, d.logradouro || nestedAddress.logradouro,
     d.numero || nestedAddress.numero, d.complemento || nestedAddress.complemento,
@@ -102,8 +114,8 @@ function normalizeCompany(d = {}) {
     fantasia: d.nome_fantasia || d.nomeFantasia || d.fantasia || '',
     abertura: normalizeDate(d.data_inicio_atividade || d.dataAbertura || d.abertura || d.inicio_atividade || d.data_abertura),
     situacao: d.descricao_situacao_cadastral || d.situacao?.descricao || d.situacao || d.situacao_cadastral || '',
-    cnae: String(d.cnae_fiscal || atividadeObj.code || atividadeObj.codigo || d.cnae || ''),
-    atividade: d.cnae_fiscal_descricao || atividadeObj.text || atividadeObj.descricao || d.atividade_principal_descricao || '',
+    cnae: String(d.cnae_fiscal || atividadeObj.code || atividadeObj.codigo || d.cnae || d.cnae_principal || ''),
+    atividade: d.cnae_fiscal_descricao || atividadeObj.text || atividadeObj.descricao || d.atividade_principal_descricao || d.cnae_descricao || '',
     uf: d.uf || nestedAddress.uf || '',
     municipio: d.municipio || d.cidade || nestedAddress.municipio || nestedAddress.cidade || '',
     cep: String(d.cep || nestedAddress.cep || ''),
@@ -145,19 +157,17 @@ async function lookupCnpj(cnpj) {
   ];
   let last;
   for (const [url, label] of providers) {
-    try { return normalizeCompany(await fetchJsonWithRetry(url, {}, 12000, label, label === 'Minha Receita' ? 2 : 0)); }
+    try { return normalizeCompany(await fetchJsonWithRetry(url, {}, 12000, label, label === 'Minha Receita' ? 1 : 0)); }
     catch (e) { last = e; }
   }
   throw fail(502, last?.message || 'Não foi possível consultar o CNPJ agora.');
 }
 
-async function searchMinhaReceita({ uf, municipio, cnae, cutoffIso, maxResults }) {
+async function searchMinhaReceita({ uf, municipio, cnae, cutoffIso }) {
   const p = new URLSearchParams({ uf, limit: '1024' });
   if (municipio) p.set('municipio', municipio);
   if (cnae) p.set('cnae', cnae);
-
-  // Uma única consulta grande reduz drasticamente a chance de estourar o limite público.
-  const payload = await fetchJsonWithRetry(`https://minhareceita.org/?${p.toString()}`, {}, 15000, 'Minha Receita', 3);
+  const payload = await fetchJsonWithRetry(`https://minhareceita.org/?${p.toString()}`, {}, 18000, 'Minha Receita', 1);
   const rows = Array.isArray(payload?.data) ? payload.data : [];
   const collected = [];
   for (const raw of rows) {
@@ -170,17 +180,27 @@ async function searchMinhaReceita({ uf, municipio, cnae, cutoffIso, maxResults }
 }
 
 async function searchSintegra({ uf, city, cnae, days, cutoffIso, maxResults }) {
-  if (!process.env.SINTEGRA_API_KEY) throw fail(503, 'SINTEGRA não configurado.');
   const p = new URLSearchParams({ uf });
   if (city) p.set('municipio', city);
   if (cnae) p.set('cnae', cnae);
   p.set('dias', String(days));
   p.set('limit', String(Math.min(maxResults, 60)));
-  const headers = { 'X-Api-Key': process.env.SINTEGRA_API_KEY };
-  const payload = await fetchJson(`https://www.sintegrabrasil.com.br/api/v1/radar?${p.toString()}`, { headers }, 12000, 'Radar SINTEGRA Brasil');
+
+  const headers = {};
+  if (process.env.SINTEGRA_API_KEY) headers['X-Api-Key'] = process.env.SINTEGRA_API_KEY;
+
+  const payload = await fetchJsonWithRetry(
+    `https://www.sintegrabrasil.com.br/api/v1/radar?${p.toString()}`,
+    { headers },
+    15000,
+    'Radar SINTEGRA Brasil',
+    1
+  );
   const rows = Array.isArray(payload) ? payload : (payload?.data || payload?.empresas || payload?.results || payload?.resultados || []);
   const list = Array.isArray(rows) ? rows : [];
-  const data = list.map(normalizeCompany).filter(x => x.cnpj && (!x.abertura || x.abertura >= cutoffIso));
+  const data = list
+    .map(normalizeCompany)
+    .filter(x => x.cnpj && (!x.abertura || x.abertura >= cutoffIso));
   return { data, scanned: list.length, source: 'SINTEGRA Brasil' };
 }
 
@@ -201,23 +221,31 @@ async function radarSearch(query) {
 
   const cacheKey = JSON.stringify({ uf, municipio, cnae, days, maxResults });
   const cached = RADAR_CACHE.get(cacheKey);
-  if (cached && Date.now() - cached.at < 90000) return cached.value;
+  if (cached && Date.now() - cached.at < 120000) return cached.value;
 
   const errors = [];
   let found = null;
-  try { found = await searchMinhaReceita({ uf, municipio, cnae, cutoffIso, maxResults }); }
-  catch (e) { errors.push(e.message); }
 
-  if ((!found || !found.data.length) && process.env.SINTEGRA_API_KEY) {
-    try { found = await searchSintegra({ uf, city, cnae, days, cutoffIso, maxResults }); }
-    catch (e) { errors.push(e.message); }
+  // SINTEGRA passa a ser a fonte principal do Radar. O acesso anônimo é aceito;
+  // se houver SINTEGRA_API_KEY, a chave é usada automaticamente.
+  try {
+    found = await searchSintegra({ uf, city, cnae, days, cutoffIso, maxResults });
+  } catch (e) {
+    errors.push(e.message);
+  }
+
+  // Minha Receita fica apenas como contingência, pois a API pública não oferece SLA.
+  if (!found || !found.data.length) {
+    try {
+      const mr = await searchMinhaReceita({ uf, municipio, cnae, cutoffIso });
+      if (mr.data.length || !found) found = mr;
+    } catch (e) {
+      errors.push(e.message);
+    }
   }
 
   if (!found) {
-    const message = errors.length
-      ? errors[0]
-      : 'Não foi possível consultar a base empresarial agora.';
-    throw fail(503, message);
+    throw fail(503, 'As fontes do Radar estão temporariamente indisponíveis. Tente novamente em alguns instantes.');
   }
 
   const unique = [...new Map(found.data.map(x => [x.cnpj, x])).values()]
@@ -227,12 +255,17 @@ async function radarSearch(query) {
   const value = {
     data: unique,
     meta: {
-      uf, municipio: city || null, municipioCodigo: municipio, cnae: cnae || null, days,
-      scanned: found.scanned || unique.length, returned: unique.length,
+      uf,
+      municipio: city || null,
+      municipioCodigo: municipio,
+      cnae: cnae || null,
+      days,
+      scanned: found.scanned || unique.length,
+      returned: unique.length,
       source: found.source,
       exhaustive: false,
       warning: errors.length ? errors.join(' | ') : null,
-      note: 'O Radar usa fontes públicas/terceiras baseadas nos dados do CNPJ e pode sofrer atraso de atualização. Para cobertura integral, use uma base própria atualizada com os arquivos oficiais da Receita Federal.'
+      note: 'O Radar usa fontes de terceiros baseadas em dados públicos do CNPJ. A disponibilidade e a atualização podem variar.'
     }
   };
 
