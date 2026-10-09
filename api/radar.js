@@ -84,7 +84,7 @@ async function authenticatedRadarUser(req) {
   const user = store.users?.find(u => u.id === session.id);
   if (!user) throw fail(401, 'Seu acesso não existe mais.');
   const role = String(user.role || '').toLowerCase();
-  if (!['admin', 'colaborador'].includes(role)) throw fail(403, 'Seu perfil não possui acesso ao Radar de Empresas.');
+  if (!['admin', 'user', 'colaborador'].includes(role)) throw fail(403, 'Seu perfil não possui acesso ao Radar de Empresas.');
   return user;
 }
 
