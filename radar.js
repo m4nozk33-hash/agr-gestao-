@@ -1,6 +1,7 @@
 (() => {
   let RADAR_RESULTS = [];
   let RADAR_LOADING = false;
+  let RADAR_SELECTED = new Set();
 
   const radarEsc = value => String(value ?? '').replace(/[&<>\"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[c]));
   const fmtCnpj = value => {
@@ -20,28 +21,40 @@
     return data;
   }
 
-  function selectedRadarIndexes() {
-    return [...document.querySelectorAll('.radar-select:checked')].map(x => Number(x.dataset.index)).filter(Number.isInteger);
+  function updateRadarPdfButtons() {
+    const allBtn = $('#radar_pdf_all_btn');
+    const selectedBtn = $('#radar_pdf_selected_btn');
+    const selectionBar = $('#radar_selection_bar');
+    const master = $('#radar_select_all');
+    const hasResults = RADAR_RESULTS.length > 0;
+    const selectedCount = [...RADAR_SELECTED].filter(i => Number.isInteger(i) && RADAR_RESULTS[i]).length;
+
+    if (allBtn) allBtn.disabled = !hasResults;
+    if (selectedBtn) {
+      selectedBtn.disabled = !hasResults || selectedCount === 0;
+      selectedBtn.textContent = selectedCount ? `📄 PDF selecionados (${selectedCount})` : '📄 PDF selecionados';
+    }
+    if (selectionBar) selectionBar.style.display = hasResults ? 'flex' : 'none';
+    if (master) {
+      master.checked = hasResults && selectedCount === RADAR_RESULTS.length;
+      master.indeterminate = selectedCount > 0 && selectedCount < RADAR_RESULTS.length;
+      master.disabled = !hasResults;
+    }
   }
 
-  window.radarSelectionChanged = function radarSelectionChanged() {
-    const selected = selectedRadarIndexes();
-    const selectedBtn = $('#radar_pdf_selected_btn');
-    if (selectedBtn) {
-      selectedBtn.disabled = selected.length === 0;
-      selectedBtn.textContent = selected.length ? `📄 PDF selecionados (${selected.length})` : '📄 PDF selecionados';
+  window.radarSelectionChanged = function radarSelectionChanged(index, checked) {
+    if (Number.isInteger(Number(index))) {
+      const i = Number(index);
+      if (checked) RADAR_SELECTED.add(i);
+      else RADAR_SELECTED.delete(i);
     }
-    const all = document.querySelectorAll('.radar-select');
-    const master = $('#radar_select_all');
-    if (master) {
-      master.checked = all.length > 0 && selected.length === all.length;
-      master.indeterminate = selected.length > 0 && selected.length < all.length;
-    }
+    updateRadarPdfButtons();
   };
 
   window.radarToggleAll = function radarToggleAll(checked) {
+    RADAR_SELECTED = checked ? new Set(RADAR_RESULTS.map((_, i) => i)) : new Set();
     document.querySelectorAll('.radar-select').forEach(x => { x.checked = !!checked; });
-    radarSelectionChanged();
+    updateRadarPdfButtons();
   };
 
   function radarCard(x, i) {
@@ -51,7 +64,7 @@
     return `<div class="cd" style="margin-bottom:10px">
       <div class="top" style="margin-bottom:8px">
         <div style="display:flex;align-items:flex-start;gap:10px;min-width:0">
-          <label title="Selecionar para PDF" style="display:flex;align-items:center;gap:5px;margin-top:2px;cursor:pointer;white-space:nowrap"><input type="checkbox" class="radar-select" data-index="${i}" onchange="radarSelectionChanged()"> Selecionar</label>
+          <label title="Selecionar para PDF" style="display:flex;align-items:center;gap:5px;margin-top:2px;cursor:pointer;white-space:nowrap"><input type="checkbox" class="radar-select" data-index="${i}" ${RADAR_SELECTED.has(i) ? 'checked' : ''} onchange="radarSelectionChanged(${i}, this.checked)"> Selecionar</label>
           <div style="min-width:0"><h3 style="margin:0 0 3px;overflow-wrap:anywhere">${radarEsc(x.fantasia || x.razaoSocial || x.nome)}</h3><small style="color:var(--mu)">${radarEsc(x.razaoSocial || '')}</small></div>
         </div>
         <span class="b" style="--c:${score >= 80 ? '#16a34a' : score >= 60 ? '#f59e0b' : '#64748b'}">Lead ${score} pts</span>
@@ -114,23 +127,26 @@
     };
     try { localStorage.setItem('agr_radar_filters', JSON.stringify(filters)); } catch {}
     RADAR_LOADING = true;
+    RADAR_RESULTS = [];
+    RADAR_SELECTED = new Set();
     status.innerHTML = 'Consultando a base empresarial…';
     results.innerHTML = '';
-    const allBtn = $('#radar_pdf_all_btn'), selectedBtn = $('#radar_pdf_selected_btn'), selectionBar = $('#radar_selection_bar');
-    if (allBtn) allBtn.disabled = true;
-    if (selectedBtn) selectedBtn.disabled = true;
-    if (selectionBar) selectionBar.style.display = 'none';
+    updateRadarPdfButtons();
+
     try {
       const response = await apiRadar({ mode: 'radar', ...filters });
       RADAR_RESULTS = response.data || [];
+      RADAR_SELECTED = new Set();
       const meta = response.meta || {};
       status.innerHTML = `<b>${RADAR_RESULTS.length} empresa(s) recente(s) localizada(s)</b><br><small style="color:var(--mu)">${meta.scanned || 0} registros analisados nesta consulta${meta.sourceUpdated ? ' · base: ' + radarEsc(String(meta.sourceUpdated)) : ''}</small>`;
       results.innerHTML = RADAR_RESULTS.length ? RADAR_RESULTS.map(radarCard).join('') : `<div class="cd"><b>Nenhuma empresa recente encontrada com estes filtros.</b><p style="color:var(--mu);margin-bottom:0">Tente aumentar o período, retirar o CNAE ou pesquisar outro município.</p></div>`;
-      if (allBtn) allBtn.disabled = RADAR_RESULTS.length === 0;
-      if (selectionBar) selectionBar.style.display = RADAR_RESULTS.length ? 'flex' : 'none';
-      radarSelectionChanged();
+      updateRadarPdfButtons();
     } catch (e) {
+      RADAR_RESULTS = [];
+      RADAR_SELECTED = new Set();
+      results.innerHTML = '';
       status.innerHTML = `<span class="dn">${radarEsc(e.message)}</span>`;
+      updateRadarPdfButtons();
     } finally { RADAR_LOADING = false; }
   };
 
@@ -144,8 +160,7 @@
       companies = [x];
       title = 'Empresa selecionada no Radar';
     } else if (mode === 'selected') {
-      const indexes = selectedRadarIndexes();
-      companies = indexes.map(i => RADAR_RESULTS[i]).filter(Boolean);
+      companies = [...RADAR_SELECTED].sort((a,b)=>a-b).map(i => RADAR_RESULTS[i]).filter(Boolean);
       if (!companies.length) { alert('Selecione pelo menos uma empresa para gerar o PDF.'); return; }
       title = 'Empresas selecionadas no Radar';
     } else {
@@ -265,6 +280,7 @@
     if (ME?.role === 'admin' && V.v === 'radar') {
       $('#nv').style.display='';$('#mn').style.padding='';$('#mn').style.maxWidth='';
       document.body.classList.add('signed-in');renderAppbar();nav();$('#mn').innerHTML=radarView();
+      updateRadarPdfButtons();
       let saved = null; try { saved = JSON.parse(localStorage.getItem('agr_radar_filters') || 'null'); } catch {}
       if (saved?.municipio || saved?.cnae) setTimeout(() => radarRun(), 0);
       return;
