@@ -47,7 +47,7 @@
   ],
   "workspaces": {
     "d1cdc7b1-5773-4d15-8b5a-131ae88318d1": {
-      "version": 27,
+      "version": 28,
       "data": {
         "colabs": [
           {
@@ -133,10 +133,42 @@
                 "x": "Boleto cadastrado com vencimento em 07/10/2026 no valor de R$ 245,00."
               }
             ]
+          },
+          {
+            "id": 1791563655444,
+            "emp": "68.998.605 FABRICIA DELFINO MIRANDA",
+            "resp": "",
+            "doc": "68.998.605/0001-57",
+            "tel": "",
+            "wa": "",
+            "ig": "",
+            "email": "",
+            "cep": "87112-400",
+            "end": "PARQUE SAO PEDRO",
+            "cid": "SARANDI",
+            "uf": "PR",
+            "obs": "",
+            "photo": "",
+            "colab": 3,
+            "st": "Lead",
+            "fech": "",
+            "fim": "",
+            "sv": [],
+            "et": {
+              "0": "2026-10-09"
+            },
+            "pays": [],
+            "hist": [
+              {
+                "d": "2026-10-09",
+                "t": "Observação",
+                "x": "Lead localizado pelo Radar de Novas Empresas. Abertura: 07/09/2026. CNAE: 9602501 — Cabeleireiros, manicure e pedicure."
+              }
+            ]
           }
         ]
       },
-      "updatedAt": "2026-10-08T02:03:41.273Z"
+      "updatedAt": "2026-10-09T16:34:15.981Z"
     },
     "d22fbd82-9459-4ce8-a876-556d3a2601d5": {
       "version": 0,
