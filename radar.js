@@ -61,6 +61,7 @@
         <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-top:10px">
           <label style="min-width:220px;margin:0">Adicionar lead para<select id="radar_colab">${S.colabs.map(c=>`<option value="${c.id}">${radarEsc(c.nome)}</option>`).join('')}</select></label>
           <button onclick="radarRun()">Pesquisar novas empresas</button>
+          <button id="radar_pdf_btn" onclick="radarExportPdf()" disabled>📄 Baixar PDF</button>
         </div>
         <p style="color:var(--mu);font-size:12px;margin:10px 0 0">Fonte: dados públicos do CNPJ. O radar consulta uma amostra paginada e filtra pela data de abertura; não representa uma varredura integral de todos os CNPJs do Brasil.</p>
       </div>
@@ -83,15 +84,53 @@
     RADAR_LOADING = true;
     status.innerHTML = 'Consultando a base empresarial…';
     results.innerHTML = '';
+    const pdfBtn = $('#radar_pdf_btn');
+    if (pdfBtn) pdfBtn.disabled = true;
     try {
       const response = await apiRadar({ mode: 'radar', ...filters });
       RADAR_RESULTS = response.data || [];
       const meta = response.meta || {};
       status.innerHTML = `<b>${RADAR_RESULTS.length} empresa(s) recente(s) localizada(s)</b><br><small style="color:var(--mu)">${meta.scanned || 0} registros analisados nesta consulta${meta.sourceUpdated ? ' · base: ' + radarEsc(String(meta.sourceUpdated)) : ''}</small>`;
       results.innerHTML = RADAR_RESULTS.length ? RADAR_RESULTS.map(radarCard).join('') : `<div class="cd"><b>Nenhuma empresa recente encontrada com estes filtros.</b><p style="color:var(--mu);margin-bottom:0">Tente aumentar o período, retirar o CNAE ou pesquisar outro município.</p></div>`;
+      if (pdfBtn) pdfBtn.disabled = RADAR_RESULTS.length === 0;
     } catch (e) {
       status.innerHTML = `<span class="dn">${radarEsc(e.message)}</span>`;
     } finally { RADAR_LOADING = false; }
+  };
+
+  window.radarExportPdf = function radarExportPdf() {
+    if (!RADAR_RESULTS.length) { alert('Pesquise empresas no radar antes de gerar o PDF.'); return; }
+    const uf = $('#radar_uf')?.value || '';
+    const municipio = $('#radar_municipio')?.value?.trim() || '';
+    const cnae = $('#radar_cnae')?.value?.trim() || '';
+    const periodo = $('#radar_days')?.selectedOptions?.[0]?.textContent || '';
+    const generatedAt = new Date().toLocaleString('pt-BR');
+    const rows = RADAR_RESULTS.map((x, i) => `<tr>
+      <td>${i + 1}</td>
+      <td><b>${radarEsc(x.fantasia || x.razaoSocial || x.nome || 'Empresa')}</b><br><small>${radarEsc(x.razaoSocial || '')}</small></td>
+      <td>${radarEsc(fmtCnpj(x.cnpj))}</td>
+      <td>${radarEsc(br(x.abertura))}</td>
+      <td>${radarEsc(x.atividade || '—')}<br><small>${radarEsc(x.cnae || '')}</small></td>
+      <td>${radarEsc(x.telefone || '—')}</td>
+      <td>${radarEsc(x.email || '—')}</td>
+      <td>${radarEsc([x.municipio, x.uf].filter(Boolean).join(' / ') || '—')}</td>
+      <td>${leadScore(x)} pts</td>
+    </tr>`).join('');
+    const report = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Radar de Empresas - AGR</title><style>
+      @page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#111;margin:0;font-size:10px}h1{font-size:22px;margin:0 0 4px}h2{font-size:12px;font-weight:normal;margin:0 0 12px;color:#444}.meta{display:flex;gap:16px;flex-wrap:wrap;margin:0 0 12px;padding:8px;border:1px solid #ddd;border-radius:8px}.meta b{display:block;font-size:9px;text-transform:uppercase;color:#666;margin-bottom:2px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px;vertical-align:top;text-align:left}th{background:#f2f2f2;font-size:9px;text-transform:uppercase}tr{break-inside:avoid}small{color:#555}.foot{margin-top:10px;font-size:9px;color:#666}.no-print{margin-bottom:12px}@media print{.no-print{display:none}}
+    </style></head><body>
+      <div class="no-print"><button onclick="window.print()">Salvar / Imprimir em PDF</button></div>
+      <h1>AGR Marketing e Tecnologia</h1><h2>Radar de Novas Empresas</h2>
+      <div class="meta"><div><b>UF</b>${radarEsc(uf || 'Todas')}</div><div><b>Município</b>${radarEsc(municipio || 'Todos')}</div><div><b>CNAE</b>${radarEsc(cnae || 'Todos')}</div><div><b>Período</b>${radarEsc(periodo)}</div><div><b>Empresas</b>${RADAR_RESULTS.length}</div><div><b>Gerado em</b>${radarEsc(generatedAt)}</div></div>
+      <table><thead><tr><th>#</th><th>Empresa</th><th>CNPJ</th><th>Abertura</th><th>Atividade / CNAE</th><th>Telefone</th><th>E-mail</th><th>Local</th><th>Lead</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="foot">Relatório gerado pelo Radar de Novas Empresas da AGR. Dados provenientes de fontes públicas/terceiras e sujeitos a atualização.</div>
+      <script>window.addEventListener('load',()=>setTimeout(()=>window.print(),300));<\/script>
+    </body></html>`;
+    const w = window.open('', '_blank');
+    if (!w) { alert('O navegador bloqueou a abertura do PDF. Permita pop-ups para este site e tente novamente.'); return; }
+    w.document.open();
+    w.document.write(report);
+    w.document.close();
   };
 
   window.radarAddLead = function radarAddLead(index) {
