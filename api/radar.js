@@ -4,7 +4,6 @@ const OWNER = 'm4nozk33-hash';
 const REPO = 'agr-gestao-';
 const BRANCH = 'main';
 const STORE_PATH = 'data/store.json';
-
 const fail = (status, message) => Object.assign(new Error(message), { status });
 
 function token() {
@@ -12,21 +11,17 @@ function token() {
   if (!value) throw fail(503, 'Armazenamento da AGR ainda não configurado na Vercel.');
   return value;
 }
-
 function cookies(req) {
   return Object.fromEntries((req.headers.cookie || '').split(';').map(x => x.trim().split(/=(.*)/s)).filter(x => x[0]));
 }
-
 function secret() {
   return crypto.createHash('sha256').update('AGR_SESSION_V1:' + token()).digest();
 }
-
 function verify(value) {
   if (!value || !value.includes('.')) throw fail(401, 'Entre novamente para continuar.');
   const [part, sig] = value.split('.');
   const expected = crypto.createHmac('sha256', secret()).update(part).digest('base64url');
-  const a = Buffer.from(sig || '');
-  const b = Buffer.from(expected);
+  const a = Buffer.from(sig || ''), b = Buffer.from(expected);
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) throw fail(401, 'Sessão inválida.');
   let p;
   try { p = JSON.parse(Buffer.from(part, 'base64url').toString('utf8')); } catch { throw fail(401, 'Sessão inválida.'); }
@@ -34,27 +29,26 @@ function verify(value) {
   return p;
 }
 
-async function fetchJson(url, options = {}, timeout = 15000) {
+async function fetchJson(url, options = {}, timeout = 12000, label = 'serviço externo') {
   let response;
   try {
     response = await fetch(url, { ...options, signal: AbortSignal.timeout(timeout) });
   } catch (e) {
-    throw fail(502, 'Não foi possível consultar a base empresarial agora.');
+    throw fail(502, `Falha de conexão com ${label}.`);
   }
   const body = await response.json().catch(() => null);
-  if (!response.ok) throw fail(response.status === 404 ? 404 : 502, body?.message || 'Falha na consulta empresarial.');
+  if (!response.ok) {
+    const detail = body?.message || body?.error || body?.detail || `HTTP ${response.status}`;
+    throw fail(response.status === 404 ? 404 : 502, `${label}: ${detail}`);
+  }
   return body;
 }
 
 async function authenticatedAdmin(req) {
   const session = verify(cookies(req).agr_session);
   const gh = await fetchJson(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${STORE_PATH}?ref=${BRANCH}`, {
-    headers: {
-      Authorization: 'Bearer ' + token(),
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28'
-    }
-  });
+    headers: { Authorization: 'Bearer ' + token(), Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }
+  }, 12000, 'armazenamento da AGR');
   const json = Buffer.from(String(gh.content || '').replace(/\n/g, ''), 'base64').toString('utf8');
   let store;
   try { store = JSON.parse(json); } catch { throw fail(500, 'Dados da AGR estão inválidos.'); }
@@ -67,48 +61,116 @@ async function authenticatedAdmin(req) {
 function onlyCnpjChars(value) {
   return String(value || '').toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 14);
 }
-
-function normalizeCompany(d) {
-  const phone = d.ddd_telefone_1 || d.telefone || d.ddd_telefone_2 || '';
-  const name = d.nome_fantasia || d.razao_social || d.nome || d.fantasia || 'Empresa';
-  const addressParts = [d.descricao_tipo_de_logradouro, d.logradouro, d.numero, d.complemento, d.bairro].filter(Boolean);
+function normalizeDate(value) {
+  if (!value) return '';
+  const s = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m = s.match(/^(\d{2})[\/-](\d{2})[\/-](\d{4})$/);
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : s.slice(0, 10);
+}
+function normalizeCompany(d = {}) {
+  const nestedAddress = d.endereco || d.address || {};
+  const phone = d.ddd_telefone_1 || d.telefone || d.phone || d.ddd_telefone_2 || d.contato?.telefone || '';
+  const name = d.nome_fantasia || d.nomeFantasia || d.fantasia || d.razao_social || d.razaoSocial || d.nome || 'Empresa';
+  const addressParts = [
+    d.descricao_tipo_de_logradouro, d.logradouro || nestedAddress.logradouro,
+    d.numero || nestedAddress.numero, d.complemento || nestedAddress.complemento,
+    d.bairro || nestedAddress.bairro
+  ].filter(Boolean);
+  const atividadeObj = d.atividade_principal?.[0] || d.atividade?.cnae_principal || d.cnae_principal || {};
   return {
-    cnpj: onlyCnpjChars(d.cnpj),
+    cnpj: onlyCnpjChars(d.cnpj || d.documento || d.cnpj_formatado || d.cnpjFormatado),
     nome: name,
-    razaoSocial: d.razao_social || d.nome || name,
-    fantasia: d.nome_fantasia || d.fantasia || '',
-    abertura: d.data_inicio_atividade || d.abertura || '',
-    situacao: d.descricao_situacao_cadastral || d.situacao || '',
-    cnae: String(d.cnae_fiscal || d.atividade_principal?.[0]?.code || ''),
-    atividade: d.cnae_fiscal_descricao || d.atividade_principal?.[0]?.text || '',
-    uf: d.uf || '',
-    municipio: d.municipio || '',
-    cep: String(d.cep || ''),
+    razaoSocial: d.razao_social || d.razaoSocial || d.nome_empresarial || d.nome || name,
+    fantasia: d.nome_fantasia || d.nomeFantasia || d.fantasia || '',
+    abertura: normalizeDate(d.data_inicio_atividade || d.dataAbertura || d.abertura || d.inicio_atividade || d.data_abertura),
+    situacao: d.descricao_situacao_cadastral || d.situacao?.descricao || d.situacao || d.situacao_cadastral || '',
+    cnae: String(d.cnae_fiscal || atividadeObj.code || atividadeObj.codigo || d.cnae || ''),
+    atividade: d.cnae_fiscal_descricao || atividadeObj.text || atividadeObj.descricao || d.atividade_principal_descricao || '',
+    uf: d.uf || nestedAddress.uf || '',
+    municipio: d.municipio || d.cidade || nestedAddress.municipio || nestedAddress.cidade || '',
+    cep: String(d.cep || nestedAddress.cep || ''),
     endereco: addressParts.join(' ').replace(/\s+/g, ' ').trim(),
-    telefone: phone,
-    email: d.email || '',
-    porte: d.porte || '',
-    mei: d.opcao_pelo_mei === true,
-    simples: d.opcao_pelo_simples === true,
-    capitalSocial: Number(d.capital_social || 0) || 0
+    telefone: typeof phone === 'object' ? (phone.numero || '') : phone,
+    email: d.email || d.contato?.email || '',
+    porte: typeof d.porte === 'object' ? (d.porte.descricao || '') : (d.porte || ''),
+    mei: d.opcao_pelo_mei === true || d.mei === true,
+    simples: d.opcao_pelo_simples === true || d.simples === true,
+    capitalSocial: Number(d.capital_social || d.capitalSocial || 0) || 0
   };
 }
 
 async function resolveMunicipio(uf, city) {
   if (!city) return null;
   if (/^\d+$/.test(city)) return city;
-  const cities = await fetchJson(`https://brasilapi.com.br/api/ibge/municipios/v1/${encodeURIComponent(uf)}`);
   const key = String(city).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
-  const found = (Array.isArray(cities) ? cities : []).find(c => String(c.nome || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase() === key);
-  if (!found) throw fail(400, 'Município não encontrado para a UF informada.');
-  return String(found.codigo_ibge || found.codigo || '');
+  const sources = [
+    `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${encodeURIComponent(uf)}/municipios`,
+    `https://brasilapi.com.br/api/ibge/municipios/v1/${encodeURIComponent(uf)}`
+  ];
+  for (const url of sources) {
+    try {
+      const cities = await fetchJson(url, {}, 9000, 'lista de municípios');
+      const list = Array.isArray(cities) ? cities : [];
+      const found = list.find(c => String(c.nome || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase() === key);
+      if (found) return String(found.id || found.codigo_ibge || found.codigo || '');
+    } catch {}
+  }
+  throw fail(400, 'Município não encontrado. Tente informar apenas a UF ou usar o código IBGE do município.');
 }
 
 async function lookupCnpj(cnpj) {
   const clean = onlyCnpjChars(cnpj);
   if (clean.length !== 14) throw fail(400, 'Informe um CNPJ com 14 caracteres.');
-  const data = await fetchJson(`https://brasilapi.com.br/api/cnpj/v1/${encodeURIComponent(clean)}`);
-  return normalizeCompany(data);
+  const providers = [
+    [`https://brasilapi.com.br/api/cnpj/v1/${encodeURIComponent(clean)}`, 'BrasilAPI'],
+    [`https://minhareceita.org/${encodeURIComponent(clean)}`, 'Minha Receita']
+  ];
+  let last;
+  for (const [url, label] of providers) {
+    try { return normalizeCompany(await fetchJson(url, {}, 12000, label)); }
+    catch (e) { last = e; }
+  }
+  throw fail(502, last?.message || 'Não foi possível consultar o CNPJ agora.');
+}
+
+async function searchMinhaReceita({ uf, municipio, cnae, cutoffIso, maxResults }) {
+  const base = new URLSearchParams({ uf, limit: '120' });
+  if (municipio) base.set('municipio', municipio);
+  if (cnae) base.set('cnae', cnae);
+  let cursor = null, scanned = 0;
+  const collected = [];
+  for (let page = 0; page < 2; page++) {
+    const p = new URLSearchParams(base);
+    if (cursor) p.set('cursor', cursor);
+    const payload = await fetchJson(`https://minhareceita.org/?${p.toString()}`, {}, 12000, 'Minha Receita');
+    const rows = Array.isArray(payload?.data) ? payload.data : [];
+    scanned += rows.length;
+    for (const raw of rows) {
+      const company = normalizeCompany(raw);
+      if (!company.cnpj || !company.abertura || company.abertura < cutoffIso) continue;
+      if (company.situacao && !String(company.situacao).toUpperCase().includes('ATIVA')) continue;
+      collected.push(company);
+    }
+    cursor = payload?.cursor || null;
+    if (!cursor || collected.length >= maxResults * 2) break;
+  }
+  return { data: collected, scanned, source: 'Minha Receita' };
+}
+
+async function searchSintegra({ uf, city, cnae, days, cutoffIso, maxResults }) {
+  const p = new URLSearchParams({ uf });
+  if (city) p.set('municipio', city);
+  if (cnae) p.set('cnae', cnae);
+  p.set('dias', String(days));
+  p.set('limit', String(Math.min(maxResults, 60)));
+  const headers = {};
+  if (process.env.SINTEGRA_API_KEY) headers['X-Api-Key'] = process.env.SINTEGRA_API_KEY;
+  const payload = await fetchJson(`https://www.sintegrabrasil.com.br/api/v1/radar?${p.toString()}`, { headers }, 12000, 'Radar SINTEGRA Brasil');
+  const rows = Array.isArray(payload) ? payload : (payload?.data || payload?.empresas || payload?.results || payload?.resultados || []);
+  const list = Array.isArray(rows) ? rows : [];
+  const data = list.map(normalizeCompany).filter(x => x.cnpj && (!x.abertura || x.abertura >= cutoffIso));
+  return { data, scanned: list.length, source: 'SINTEGRA Brasil' };
 }
 
 async function radarSearch(query) {
@@ -118,62 +180,37 @@ async function radarSearch(query) {
   const cnae = String(query.cnae || '').replace(/\D/g, '').slice(0, 7);
   const days = Math.max(1, Math.min(365, Number(query.days || 30) || 30));
   const maxResults = Math.max(10, Math.min(100, Number(query.limit || 50) || 50));
-  const municipio = await resolveMunicipio(uf, city);
-
-  const params = new URLSearchParams();
-  params.set('uf', uf);
-  if (municipio) params.set('municipio', municipio);
-  if (cnae) params.set('cnae', cnae);
-  params.set('limit', '512');
+  let municipio = null;
+  try { municipio = await resolveMunicipio(uf, city); } catch (e) { if (city) throw e; }
 
   const cutoff = new Date();
   cutoff.setHours(0, 0, 0, 0);
   cutoff.setDate(cutoff.getDate() - days);
   const cutoffIso = cutoff.toISOString().slice(0, 10);
 
-  let cursor = null;
-  let scanned = 0;
-  const collected = [];
-  for (let page = 0; page < 3; page++) {
-    const pageParams = new URLSearchParams(params);
-    if (cursor) pageParams.set('cursor', cursor);
-    const payload = await fetchJson(`https://minhareceita.org/?${pageParams.toString()}`, {}, 18000);
-    const rows = Array.isArray(payload?.data) ? payload.data : [];
-    scanned += rows.length;
-    for (const raw of rows) {
-      const company = normalizeCompany(raw);
-      if (!company.abertura || company.abertura < cutoffIso) continue;
-      if (company.situacao && company.situacao.toUpperCase() !== 'ATIVA') continue;
-      collected.push(company);
-    }
-    cursor = payload?.cursor || null;
-    if (!cursor || collected.length >= maxResults * 2) break;
+  const errors = [];
+  let found = null;
+  try { found = await searchMinhaReceita({ uf, municipio, cnae, cutoffIso, maxResults }); }
+  catch (e) { errors.push(e.message); }
+  if (!found || !found.data.length) {
+    try { found = await searchSintegra({ uf, city, cnae, days, cutoffIso, maxResults }); }
+    catch (e) { errors.push(e.message); }
   }
+  if (!found) throw fail(502, 'Não foi possível consultar as bases empresariais. ' + errors.join(' | '));
 
-  const unique = [...new Map(collected.map(x => [x.cnpj, x])).values()]
+  const unique = [...new Map(found.data.map(x => [x.cnpj, x])).values()]
     .sort((a, b) => String(b.abertura).localeCompare(String(a.abertura)))
     .slice(0, maxResults);
-
-  let sourceUpdated = null;
-  try {
-    const updated = await fetchJson('https://minhareceita.org/updated', {}, 8000);
-    sourceUpdated = updated?.updated || updated?.date || updated?.data || updated;
-  } catch {}
 
   return {
     data: unique,
     meta: {
-      uf,
-      municipio: city || null,
-      municipioCodigo: municipio,
-      cnae: cnae || null,
-      days,
-      scanned,
-      returned: unique.length,
-      sourceUpdated,
-      source: 'Dados do CNPJ/Receita Federal via Minha Receita',
+      uf, municipio: city || null, municipioCodigo: municipio, cnae: cnae || null, days,
+      scanned: found.scanned || unique.length, returned: unique.length,
+      source: found.source,
       exhaustive: false,
-      note: 'O radar usa uma consulta paginada da base pública e filtra pela data de abertura. Para cobertura integral de todo o Brasil, é necessário importar a base mensal completa da Receita para um banco dedicado.'
+      warning: errors.length ? errors.join(' | ') : null,
+      note: 'O Radar usa fontes públicas/terceiras baseadas nos dados do CNPJ e pode sofrer atraso de atualização. Para cobertura integral, use uma base própria atualizada com os arquivos oficiais da Receita Federal.'
     }
   };
 }
@@ -185,12 +222,8 @@ module.exports = async function handler(req, res) {
     if (req.method !== 'GET') throw fail(405, 'Método não permitido.');
     await authenticatedAdmin(req);
     const mode = String(req.query?.mode || 'radar');
-    if (mode === 'cnpj') {
-      const company = await lookupCnpj(req.query?.cnpj);
-      return res.status(200).json({ company });
-    }
-    const result = await radarSearch(req.query || {});
-    return res.status(200).json(result);
+    if (mode === 'cnpj') return res.status(200).json({ company: await lookupCnpj(req.query?.cnpj) });
+    return res.status(200).json(await radarSearch(req.query || {}));
   } catch (e) {
     return res.status(e.status || 500).json({ error: e.message || 'Erro interno.' });
   }
