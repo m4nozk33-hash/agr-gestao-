@@ -1,0 +1,1 @@
+Radar de Empresas: busca de novos CNPJs, consulta automática de CNPJ no cadastro e conversão em lead.
