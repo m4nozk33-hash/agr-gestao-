@@ -78,7 +78,21 @@ async function authenticatedRadarUser(req) {
   const gh = await fetchJson(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${STORE_PATH}?ref=${BRANCH}`, {
     headers: { Authorization: 'Bearer ' + token(), Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }
   }, 12000, 'armazenamento da AGR');
-  const json = Buffer.from(String(gh.content || '').replace(/\n/g, ''), 'base64').toString('utf8');
+
+  // GitHub Contents API can omit content for files larger than 1 MB.
+  // Use the blob endpoint in that case, keeping the same stored data.
+  let encoded = typeof gh.content === 'string' ? gh.content.replace(/\\n/g, '') : '';
+  if (!encoded || gh.encoding !== 'base64') {
+    if (!gh.sha) throw fail(500, 'Não foi possível localizar os dados da AGR.');
+    const blob = await fetchJson(`https://api.github.com/repos/${OWNER}/${REPO}/git/blobs/${gh.sha}`, {
+      headers: { Authorization: 'Bearer ' + token(), Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }
+    }, 12000, 'armazenamento da AGR');
+    if (!blob || blob.encoding !== 'base64' || typeof blob.content !== 'string') {
+      throw fail(500, 'Não foi possível ler os dados da AGR.');
+    }
+    encoded = blob.content.replace(/\\n/g, '');
+  }
+  const json = Buffer.from(encoded, 'base64').toString('utf8');
   let store;
   try { store = JSON.parse(json); } catch { throw fail(500, 'Dados da AGR estão inválidos.'); }
   const user = store.users?.find(u => u.id === session.id);
@@ -87,7 +101,6 @@ async function authenticatedRadarUser(req) {
   if (!['admin', 'user', 'colaborador'].includes(role)) throw fail(403, 'Seu perfil não possui acesso ao Radar de Empresas.');
   return user;
 }
-
 function onlyCnpjChars(value) {
   return String(value || '').toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 14);
 }
