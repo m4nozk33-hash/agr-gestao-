@@ -141,7 +141,7 @@ async function uploadProfilePhoto(input){
 function go(v,id){V={v,id};render();scrollTo(0,0)}
 function render(){if(!ME)return login();
  $('#nv').style.display='';$('#mn').style.padding='';$('#mn').style.maxWidth='';
- if(ME.role!='admin'){if(!(V.v=='cli'&&gc(V.id)?.colab==ME.colabId))V={v:'col',id:ME.colabId}}
+ if(ME.role!='admin'){if(V.v!=='vault'&&!(V.v=='cli'&&gc(V.id)?.colab==ME.colabId))V={v:'col',id:ME.colabId}}
  document.body.classList.add('signed-in');renderAppbar();nav();$('#mn').innerHTML=({dash,eq,col,cli,usr,newusr,vault:vaultPage}[V.v])();if(V.v==='vault'||V.v==='cli')loadVault()}
 function dash(){const r=rng(),p=prv(r),C=S.clients,fat=pay(C,r),ant=pay(C,p),cr=ant?(fat-ant)/ant*100:0,rec=pay(C,r,1),pen=pay(C,r,0),com=pay(C,r,null,1);
  const at=C.filter(c=>ACT.includes(c.st)),mrr=at.reduce((a,c)=>a+mens(c),0),prop=C.filter(c=>c.st=='Negociação').reduce((a,c)=>a+mens(c),0);
