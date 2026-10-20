@@ -230,7 +230,7 @@ module.exports = async function handler(req, res) {
       assertUserInput(body);
       const { data: store, sha } = await readStore();
       const admins = store.users.filter(u => u.role === 'admin');
-      if (admins.length >= 2) throw fail(403, 'A criação pública de administrador já foi encerrada.');
+      if (admins.length >= 2 || emailKey(body.email) !== 'm4nozk33@gmail.com') throw fail(403, 'Cadastro inicial restrito ao administrador principal.');
       const email = emailKey(body.email);
       if (store.users.some(u => emailKey(u.email) === email)) throw fail(409, 'Este e-mail já possui uma conta.');
       const id = newId();
@@ -297,6 +297,7 @@ module.exports = async function handler(req, res) {
       if (req.method === 'POST') {
         assertUserInput(body);
         if (!['admin', 'user'].includes(body.role)) throw fail(400, 'Perfil inválido.');
+        if (body.role === 'admin' && emailKey(profile.email) !== 'm4nozk33@gmail.com') throw fail(403, 'Somente o administrador principal pode criar administradores.');
         const email = emailKey(body.email);
         if (store.users.some(u => emailKey(u.email) === email)) throw fail(409, 'Este e-mail já possui uma conta.');
         const row = workspace(store, profile);
@@ -316,8 +317,9 @@ module.exports = async function handler(req, res) {
       }
 
       if (req.method === 'DELETE') {
+        if (emailKey(profile.email) !== 'm4nozk33@gmail.com') throw fail(403, 'Somente a conta principal pode excluir usuários.');
         if (!body.id || body.id === profile.id) throw fail(400, 'Você não pode remover seu próprio acesso.');
-        const i = store.users.findIndex(u => u.id === body.id && u.ownerId === profile.id && u.role !== 'admin');
+        const i = store.users.findIndex(u => u.id === body.id && (u.ownerId === profile.id || u.role === 'admin') && emailKey(u.email) !== 'm4nozk33@gmail.com');
         if (i < 0) throw fail(404, 'Usuário não encontrado.');
         store.users.splice(i, 1);
         await writeStore(store, loaded.sha, 'data: remove AGR user');
