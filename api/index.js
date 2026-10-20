@@ -183,6 +183,11 @@ function merge(state, incoming, profile) {
   const next = { colabs: state.colabs, clients: [...foreign, ...(incoming.clients || [])] };
   validate(next); return next;
 }
+
+function vaultKey(){return crypto.scryptSync(process.env.AGR_VAULT_KEY || token(), 'AGR-vault-v1', 32);}
+function seal(value){const iv=crypto.randomBytes(12),cipher=crypto.createCipheriv('aes-256-gcm',vaultKey(),iv);const data=Buffer.concat([cipher.update(JSON.stringify(value),'utf8'),cipher.final()]);return {iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),data:data.toString('base64')};}
+function unseal(value){const decipher=crypto.createDecipheriv('aes-256-gcm',vaultKey(),Buffer.from(value.iv,'base64'));decipher.setAuthTag(Buffer.from(value.tag,'base64'));return JSON.parse(Buffer.concat([decipher.update(Buffer.from(value.data,'base64')),decipher.final()]).toString('utf8'));}
+
 function emailKey(email) { return String(email || '').trim().toLowerCase(); }
 function assertUserInput(body) {
   if (!body.nome?.trim() || !emailKey(body.email).includes('@') || typeof body.password !== 'string' || body.password.length < 5)
@@ -277,6 +282,39 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
+
+    if (route === 'vault' && ['GET','POST','DELETE'].includes(req.method)) {
+      const row = workspace(store,profile);
+      const allowed = c => profile.role === 'admin' || c.colab === profile.colabId;
+      const clients = row.data.clients.filter(allowed);
+      if (req.method === 'GET') {
+        const result = {};
+        for(const c of clients){const item=store.vault?.[workspaceOwner(profile)]?.[c.id];result[c.id]=item?unseal(item):{accounts:[],documents:[]};}
+        return res.status(200).json({clients:result});
+      }
+      const client=clients.find(c=>c.id===Number(body.clientId));
+      if(!client)throw fail(403,'Cliente não autorizado.');
+      const owner=workspaceOwner(profile);
+      store.vault ||= {};store.vault[owner] ||= {};
+      const current=store.vault[owner][client.id]?unseal(store.vault[owner][client.id]):{accounts:[],documents:[]};
+      if(req.method==='POST'){
+        if(body.kind==='account'){
+          if(!['iFood','Facebook','Instagram','Outro'].includes(body.platform)||typeof body.password!=='string'||body.password.length>500||!body.password||String(body.login||'').length>250)throw fail(400,'Dados de acesso inválidos.');
+          current.accounts.push({id:newId(),platform:body.platform,login:String(body.login||''),password:body.password});
+        }else if(body.kind==='document'){
+          if(typeof body.name!=='string'||body.name.length>180||typeof body.data!=='string'||!/^data:(application\/pdf|image\/(png|jpeg|webp)|text\/plain);base64,[A-Za-z0-9+/]+={0,2}$/.test(body.data)||body.data.length>650000)throw fail(400,'Documento inválido ou maior que 450 KB.');
+          current.documents.push({id:newId(),name:body.name,data:body.data,createdAt:new Date().toISOString()});
+        }else throw fail(400,'Tipo inválido.');
+      }else{
+        if(!['account','document'].includes(body.kind))throw fail(400,'Tipo inválido.');
+        const key=body.kind==='account'?'accounts':'documents';
+        current[key]=current[key].filter(x=>x.id!==body.id);
+      }
+      store.vault[owner][client.id]=seal(current);
+      await writeStore(store,loaded.sha,'data: update encrypted AGR client vault');
+      return res.status(200).json({ok:true});
+    }
+
     if (route === 'state' && req.method === 'GET') {
       const row = workspace(store, profile);
       return res.status(200).json({ version: row.version, state: view(row.data, profile, profilesFor(store, profile)) });
@@ -286,6 +324,8 @@ module.exports = async function handler(req, res) {
       const row = workspace(store, profile);
       if (body.version !== row.version) throw fail(409, 'Outra pessoa alterou os dados. Recarregue e tente novamente.');
       const next = merge(row.data, body.state, profile);
+      if (emailKey(profile.email) !== 'm4nozk33@gmail.com' && next.colabs.some(c=>!row.data.colabs.some(old=>old.id===c.id))) {} 
+      if (emailKey(profile.email) !== 'm4nozk33@gmail.com' && row.data.colabs.some(c=>!next.colabs.some(n=>n.id===c.id))) throw fail(403,'Somente o administrador principal pode excluir colaboradores.');
       row.data = next;
       row.version += 1;
       row.updatedAt = new Date().toISOString();
