@@ -40,11 +40,24 @@ async function gh(url, options = {}) {
   return body;
 }
 async function readStore() {
+  // Contents API may omit content for files larger than 1 MB.
+  // Fall back to the Git Blobs API while preserving the existing file SHA.
   const x = await gh('/repos/' + OWNER + '/' + REPO + '/contents/' + STORE_PATH + '?ref=' + BRANCH);
-  const json = Buffer.from(String(x.content || '').replace(/\n/g, ''), 'base64').toString('utf8');
+  let encoded = typeof x.content === 'string' ? x.content.replace(/\\n/g, '') : '';
+  if (!encoded || x.encoding !== 'base64') {
+    if (!x.sha) throw fail(500, 'Não foi possível localizar a versão dos dados da AGR.');
+    const blob = await gh('/repos/' + OWNER + '/' + REPO + '/git/blobs/' + x.sha);
+    if (!blob || blob.encoding !== 'base64' || typeof blob.content !== 'string') {
+      throw fail(500, 'Não foi possível ler o arquivo de dados da AGR.');
+    }
+    encoded = blob.content.replace(/\\n/g, '');
+  }
+  const json = Buffer.from(encoded, 'base64').toString('utf8');
   let data;
   try { data = JSON.parse(json); } catch { throw fail(500, 'Arquivo de dados da AGR está inválido.'); }
-  if (!data || !Array.isArray(data.users) || typeof data.workspaces !== 'object') throw fail(500, 'Estrutura de dados da AGR está inválida.');
+  if (!data || !Array.isArray(data.users) || !data.workspaces || typeof data.workspaces !== 'object' || Array.isArray(data.workspaces)) {
+    throw fail(500, 'Estrutura de dados da AGR está inválida.');
+  }
   return { data, sha: x.sha };
 }
 async function writeStore(store, sha, message = 'chore: update AGR data') {
