@@ -33,6 +33,16 @@
       "ownerId": "313fe0cd-2efd-4833-b9a4-13c8e81b8346",
       "passwordSalt": "bc6d4c093f718839d112cf1ada327f0e",
       "passwordHash": "3119a766aa35a73874c5b32dd50aa3015ec38539741d533b428009f5ccc8d73c1c0d1e1fcd89d18fcfb6c865992caf4d03903f9300e672ce54667b29f6cea021"
+    },
+    {
+      "id": "4722f85e-83cf-45d2-a577-63bdc28bfa2c",
+      "nome": "lucas (adm)",
+      "email": "lucasjoselage@gmail.com",
+      "role": "admin",
+      "colabId": null,
+      "ownerId": "4722f85e-83cf-45d2-a577-63bdc28bfa2c",
+      "passwordSalt": "ac00bed47fcef2fb1db87e381e050508",
+      "passwordHash": "b699fe274137e1d0703561f94ce5a6f5bbb8d906f0d740ecc12cd2c6b592fab0f3f8d5d6721a701de2d105787c90477db1d6c1f9e4209ae4abf3e561cd506fd4"
     }
   ],
   "workspaces": {
@@ -144,6 +154,13 @@
       }
     },
     "313fe0cd-2efd-4833-b9a4-13c8e81b8346": {
+      "version": 0,
+      "data": {
+        "colabs": [],
+        "clients": []
+      }
+    },
+    "4722f85e-83cf-45d2-a577-63bdc28bfa2c": {
       "version": 0,
       "data": {
         "colabs": [],
