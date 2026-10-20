@@ -47,7 +47,7 @@
   ],
   "workspaces": {
     "d1cdc7b1-5773-4d15-8b5a-131ae88318d1": {
-      "version": 35,
+      "version": 36,
       "data": {
         "colabs": [
           {
@@ -69,6 +69,11 @@
             "id": 4,
             "com": 60,
             "nome": "Lucas"
+          },
+          {
+            "id": 1792532859245,
+            "nome": "chiara",
+            "com": 60
           }
         ],
         "clients": [
@@ -137,7 +142,7 @@
           }
         ]
       },
-      "updatedAt": "2026-10-20T21:31:54.762Z"
+      "updatedAt": "2026-10-20T21:47:41.247Z"
     },
     "d22fbd82-9459-4ce8-a876-556d3a2601d5": {
       "version": 0,
