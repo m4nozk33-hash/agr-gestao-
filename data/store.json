@@ -47,7 +47,7 @@
   ],
   "workspaces": {
     "d1cdc7b1-5773-4d15-8b5a-131ae88318d1": {
-      "version": 34,
+      "version": 35,
       "data": {
         "colabs": [
           {
@@ -134,42 +134,10 @@
                 "x": "PDF do boleto anexado: CONTRATO AGR.pdf."
               }
             ]
-          },
-          {
-            "id": 1792012444246,
-            "emp": "Gela boca",
-            "resp": "",
-            "doc": "",
-            "tel": "",
-            "wa": "",
-            "ig": "",
-            "email": "",
-            "cep": "",
-            "end": "",
-            "cid": "",
-            "uf": "",
-            "obs": "",
-            "photo": "",
-            "colab": 4,
-            "st": "Lead",
-            "fech": "",
-            "fim": "",
-            "sv": [],
-            "et": {
-              "0": "2026-10-14"
-            },
-            "pays": [],
-            "hist": [
-              {
-                "d": "2026-10-14",
-                "t": "Observação",
-                "x": "Cliente cadastrado."
-              }
-            ]
           }
         ]
       },
-      "updatedAt": "2026-10-20T17:26:50.467Z"
+      "updatedAt": "2026-10-20T21:31:54.762Z"
     },
     "d22fbd82-9459-4ce8-a876-556d3a2601d5": {
       "version": 0,
