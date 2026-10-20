@@ -65,8 +65,8 @@ const bd=s=>`<span class="b" style="--c:${COL[s]||'#64748b'}">${s}</span>`,plain
 let S={colabs:[],clients:[],users:[]},VERSION=0,queue=Promise.resolve(),pending=0,generation=0,refreshing=null;
 let committed=structuredClone(S);
 async function api(route,body,method,canRefresh=true){
- const r=await fetch('/api/'+route,{method:method||(body?'POST':'GET'),credentials:'same-origin',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
- const result=await r.json();
+ const r=await fetch(route==='vault'?'/api?route=vault':'/api/'+route,{method:method||(body?'POST':'GET'),credentials:'same-origin',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
+ const raw=await r.text();let result;try{result=JSON.parse(raw)}catch{throw Object.assign(new Error('O servidor retornou uma página em vez dos dados. Verifique se a API da Vercel está publicada (HTTP '+r.status+').'),{status:r.status})}
  if(r.status===401&&canRefresh&&!['login','refresh','recover-code','verify-recovery-code','bootstrap-admin','logout'].includes(route)){
   if(!refreshing)refreshing=api('refresh',{},'POST',false).finally(()=>refreshing=null);
   await refreshing;return api(route,body,method,false);
