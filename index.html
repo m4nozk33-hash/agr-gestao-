@@ -47,12 +47,12 @@ body.signed-in nav{top:76px;height:calc(100vh - 76px)}
 html,body{overscroll-behavior:none}
 body{touch-action:pan-x pan-y}
 </style><style id="agr-compliance-style">
-:root{color-scheme:light dark}*:focus-visible{outline:3px solid #a78bfa!important;outline-offset:3px!important}
+*:focus-visible{outline:3px solid #a78bfa!important;outline-offset:3px!important}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 #agr-legal-footer{padding:16px 22px;font-size:12px;display:flex;flex-wrap:wrap;gap:14px;justify-content:center;color:var(--mu,#a1a1aa)}
 #agr-legal-footer a,#agr-legal-footer button{color:inherit;background:none;border:0;text-decoration:underline;cursor:pointer;font:inherit}
 #agr-cookie-banner{position:fixed;bottom:12px;left:12px;right:12px;z-index:9998;background:#202535;color:#fff;border:1px solid #71717a;border-radius:12px;padding:18px;box-shadow:0 8px 25px #0006;max-width:700px}
-#agr-cookie-banner button{margin:5px}
+#agr-cookie-banner[hidden]{display:none!important}#agr-cookie-banner button{margin:5px}
 #agr-legal-dialog{max-width:min(760px,94vw);max-height:85vh;overflow:auto;padding:24px;border:1px solid #777;border-radius:12px;background:#1c2030;color:#fff}
 #agr-legal-dialog h2{margin-top:0}#agr-legal-dialog p,#agr-legal-dialog li{line-height:1.6}
 </style></head><body>
@@ -350,7 +350,7 @@ const agrLegalPages={
  'O AGR Gestão é um sistema de uso interno para administração de clientes, colaboradores, atividades e informações comerciais.',
  'Podem ser tratados dados cadastrais, contatos, histórico de atendimento, documentos e credenciais cadastradas por usuários autorizados. A finalidade é executar a gestão comercial e prestar os serviços contratados.',
  'O acesso é controlado por autenticação e permissões. Os dados podem ser processados por provedores de hospedagem e armazenamento utilizados no funcionamento do sistema.',
- 'A AGR deve informar a identificação completa do controlador, contato de privacidade, bases legais aplicáveis, prazos de retenção, transferências internacionais e procedimentos para exercício de direitos antes de publicar esta política como definitiva.',
+ 'Controlador identificado: 69.460.614 Lucas Jose Lage Godoy, CNPJ 69.460.614/0001-52. Contato para privacidade: agrmarketingetec@gmail.com. Bases legais, períodos de retenção e eventuais transferências internacionais devem ser avaliados conforme cada tratamento efetivo.',
  'Para solicitar acesso, correção ou exclusão de dados, entre em contato pelo e-mail agrmarketingetec@gmail.com. Solicitações estarão sujeitas às obrigações legais de conservação.'
  ]],
  terms:['Termos de uso — informações preliminares',[
@@ -360,7 +360,7 @@ const agrLegalPages={
  ]],
  refund:['Reembolsos e cancelamentos',[
  'A AGR Gestão é uma ferramenta de administração. As condições de cancelamento e reembolso dos serviços da AGR dependem do contrato celebrado e da legislação aplicável.',
- 'Não há uma regra de reembolso publicada aqui porque os prazos, serviços e condições contratuais precisam ser confirmados pela AGR. Consulte o contrato ou os canais oficiais antes de contratar.'
+ 'Solicitações podem ser enviadas a agrmarketingetec@gmail.com. A análise considera o contrato aplicável e os direitos previstos na legislação, sem afastar direitos legais do consumidor quando cabíveis.'
  ]],
  company:['Identificação da empresa',[
  'Nome comercial: AGR Marketing e Tecnologia.',
@@ -372,11 +372,11 @@ const agrLegalPages={
  accessibility:['Acessibilidade',[
  'Este sistema oferece identificação textual para os principais elementos de interface, indicação visual de foco e suporte às preferências de redução de movimento.',
  'A navegação por teclado pode ser feita usando Tab, Shift+Tab, Enter e Escape nos componentes compatíveis. A interface ainda requer auditoria completa de acessibilidade e testes com tecnologias assistivas.',
- 'Caso encontre uma barreira de acesso, comunique-a à equipe responsável pela AGR.'
+ 'Caso encontre uma barreira de acesso, escreva para agrmarketingetec@gmail.com.'
  ]]
 };
 function agrLegal(key){const item=agrLegalPages[key];if(!item)return;const escLegal=x=>String(x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));document.getElementById('agr-legal-content').innerHTML='<h2>'+escLegal(item[0])+'</h2>'+item[1].map(p=>'<p>'+escLegal(p)+'</p>').join('');document.getElementById('agr-legal-dialog').showModal()}
 function agrCookieSettings(){document.getElementById('agr-cookie-banner').hidden=false}
 function agrConsent(value){try{localStorage.setItem('agr-cookie-consent-v1',value)}catch(e){}document.getElementById('agr-cookie-banner').hidden=true}
-document.addEventListener('DOMContentLoaded',()=>{let v=null;try{v=localStorage.getItem('agr-cookie-consent-v1')}catch(e){}if(!v)agrCookieSettings();document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('agr-cookie-banner')&&!document.getElementById('agr-cookie-banner').hidden)document.getElementById('agr-cookie-banner').hidden=true})});
+document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('img:not([alt])').forEach(img=>img.setAttribute('alt',''));let v=null;try{v=localStorage.getItem('agr-cookie-consent-v1')}catch(e){}if(!v)agrCookieSettings();document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('agr-cookie-banner')&&!document.getElementById('agr-cookie-banner').hidden)document.getElementById('agr-cookie-banner').hidden=true})});
 </script></body></html>
