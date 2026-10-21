@@ -46,8 +46,17 @@ body.signed-in nav{top:76px;height:calc(100vh - 76px)}
 </style><style id="ios-touch-lock">
 html,body{overscroll-behavior:none}
 body{touch-action:pan-x pan-y}
+</style><style id="agr-compliance-style">
+:root{color-scheme:light dark}*:focus-visible{outline:3px solid #a78bfa!important;outline-offset:3px!important}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+#agr-legal-footer{padding:16px 22px;font-size:12px;display:flex;flex-wrap:wrap;gap:14px;justify-content:center;color:var(--mu,#a1a1aa)}
+#agr-legal-footer a,#agr-legal-footer button{color:inherit;background:none;border:0;text-decoration:underline;cursor:pointer;font:inherit}
+#agr-cookie-banner{position:fixed;bottom:12px;left:12px;right:12px;z-index:9998;background:#202535;color:#fff;border:1px solid #71717a;border-radius:12px;padding:18px;box-shadow:0 8px 25px #0006;max-width:700px}
+#agr-cookie-banner button{margin:5px}
+#agr-legal-dialog{max-width:min(760px,94vw);max-height:85vh;overflow:auto;padding:24px;border:1px solid #777;border-radius:12px;background:#1c2030;color:#fff}
+#agr-legal-dialog h2{margin-top:0}#agr-legal-dialog p,#agr-legal-dialog li{line-height:1.6}
 </style></head><body>
-<header id="appbar" class="appbar" hidden style="display:none"></header><nav id="nv"></nav><div class="workspace"><main id="mn"></main></div><dialog id="m"></dialog>
+<header id="appbar" class="appbar" hidden style="display:none"></header><nav id="nv"></nav><div class="workspace"><main id="mn"></main></div><dialog id="m"></dialog><footer id="agr-legal-footer" aria-label="Informações legais"><a href="#privacidade" onclick="agrLegal('privacy');return false">Privacidade</a><a href="#termos" onclick="agrLegal('terms');return false">Termos de uso</a><a href="#cookies" onclick="agrCookieSettings();return false">Cookies</a><a href="#reembolsos" onclick="agrLegal('refund');return false">Reembolsos</a><a href="#empresa" onclick="agrLegal('company');return false">Dados da empresa</a><a href="#acessibilidade" onclick="agrLegal('accessibility');return false">Acessibilidade</a></footer><dialog id="agr-legal-dialog" aria-label="Informações legais"><button type="button" onclick="document.getElementById('agr-legal-dialog').close()" aria-label="Fechar informações legais">✕ Fechar</button><article id="agr-legal-content"></article></dialog><div id="agr-cookie-banner" role="region" aria-label="Preferências de cookies" hidden><strong>Preferências de privacidade</strong><p>Usamos recursos necessários para autenticação e funcionamento do sistema. Cookies opcionais de análise ou publicidade só poderão ser ativados mediante sua escolha, caso sejam instalados futuramente.</p><button type="button" onclick="agrConsent('essential')">Somente necessários</button><button type="button" onclick="agrConsent('all')">Aceitar opcionais</button><button type="button" onclick="agrLegal('privacy')">Saiba mais</button></div>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const R=n=>(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}),P=n=>(n>=0?'+':'')+n.toFixed(1)+'%';
@@ -335,4 +344,36 @@ function removeVault(kind,cid,id){if(!confirm('Excluir este registro?'))return;a
 function uploadVault(cid,input){const file=input.files[0];if(!file)return;if(file.size>450000)return alert('Arquivo maior que 450 KB.');const allowed=['application/pdf','image/png','image/jpeg','image/webp','text/plain'];if(!allowed.includes(file.type))return alert('Formato não permitido.');const reader=new FileReader();reader.onload=()=>api('vault',{clientId:cid,kind:'document',name:file.name,data:reader.result},'POST').then(loadVault).catch(e=>alert(e.message));reader.readAsDataURL(file)}
 function downloadVault(cid,id){const d=(vaultCache[cid]?.documents||[]).find(x=>x.id===id);if(!d)return;const a=document.createElement('a');a.href=d.data;a.download=d.name;document.body.append(a);a.click();a.remove()}
 </script>
-</body></html>
+<script id="agr-compliance-script">
+const agrLegalPages={
+ privacy:['Política de privacidade — informações preliminares',[
+ 'O AGR Gestão é um sistema de uso interno para administração de clientes, colaboradores, atividades e informações comerciais.',
+ 'Podem ser tratados dados cadastrais, contatos, histórico de atendimento, documentos e credenciais cadastradas por usuários autorizados. A finalidade é executar a gestão comercial e prestar os serviços contratados.',
+ 'O acesso é controlado por autenticação e permissões. Os dados podem ser processados por provedores de hospedagem e armazenamento utilizados no funcionamento do sistema.',
+ 'A AGR deve informar a identificação completa do controlador, contato de privacidade, bases legais aplicáveis, prazos de retenção, transferências internacionais e procedimentos para exercício de direitos antes de publicar esta política como definitiva.',
+ 'Para solicitar acesso, correção ou exclusão de dados, entre em contato pelos canais oficiais informados pela AGR. Solicitações estarão sujeitas às obrigações legais de conservação.'
+ ]],
+ terms:['Termos de uso — informações preliminares',[
+ 'O acesso ao AGR Gestão é destinado a usuários autorizados. Cada usuário deve proteger suas credenciais e utilizar somente os dados necessários às suas atividades.',
+ 'É proibido acessar informações sem autorização, compartilhar senhas indevidamente, inserir dados ilícitos ou tentar contornar permissões.',
+ 'A disponibilidade e as condições comerciais devem ser estabelecidas em contrato próprio. Este texto informativo não substitui os termos contratuais aprovados pela empresa.'
+ ]],
+ refund:['Reembolsos e cancelamentos',[
+ 'A AGR Gestão é uma ferramenta de administração. As condições de cancelamento e reembolso dos serviços da AGR dependem do contrato celebrado e da legislação aplicável.',
+ 'Não há uma regra de reembolso publicada aqui porque os prazos, serviços e condições contratuais precisam ser confirmados pela AGR. Consulte o contrato ou os canais oficiais antes de contratar.'
+ ]],
+ company:['Identificação da empresa',[
+ 'Nome comercial: AGR Marketing e Tecnologia.',
+ 'Razão social, CNPJ, endereço comercial, e-mail oficial para solicitações LGPD e canal de atendimento: dados ainda precisam ser confirmados pela empresa antes da publicação definitiva.'
+ ]],
+ accessibility:['Acessibilidade',[
+ 'Este sistema oferece identificação textual para os principais elementos de interface, indicação visual de foco e suporte às preferências de redução de movimento.',
+ 'A navegação por teclado pode ser feita usando Tab, Shift+Tab, Enter e Escape nos componentes compatíveis. A interface ainda requer auditoria completa de acessibilidade e testes com tecnologias assistivas.',
+ 'Caso encontre uma barreira de acesso, comunique-a à equipe responsável pela AGR.'
+ ]]
+};
+function agrLegal(key){const item=agrLegalPages[key];if(!item)return;const escLegal=x=>String(x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));document.getElementById('agr-legal-content').innerHTML='<h2>'+escLegal(item[0])+'</h2>'+item[1].map(p=>'<p>'+escLegal(p)+'</p>').join('');document.getElementById('agr-legal-dialog').showModal()}
+function agrCookieSettings(){document.getElementById('agr-cookie-banner').hidden=false}
+function agrConsent(value){try{localStorage.setItem('agr-cookie-consent-v1',value)}catch(e){}document.getElementById('agr-cookie-banner').hidden=true}
+document.addEventListener('DOMContentLoaded',()=>{let v=null;try{v=localStorage.getItem('agr-cookie-consent-v1')}catch(e){}if(!v)agrCookieSettings();document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('agr-cookie-banner')&&!document.getElementById('agr-cookie-banner').hidden)document.getElementById('agr-cookie-banner').hidden=true})});
+</script></body></html>
