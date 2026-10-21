@@ -197,6 +197,9 @@ function assertUserInput(body) {
 module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   try {
     if (!['GET', 'HEAD'].includes(req.method)) {
       const origin = req.headers.origin;
